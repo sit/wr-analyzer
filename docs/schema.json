@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "stream_metadata": {
+      "type": "object",
+      "properties": {
+        "source": { "type": "string" },
+        "analysis_date": { "type": "string", "format": "date-time" },
+        "games": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "start_time": { "type": "string", "format": "date-time" },
+              "end_time": { "type": "string", "format": "date-time" },
+              "result": { "type": "string", "enum": ["Win", "Lose"] },
+              "champions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "player": { "type": "string" },
+                    "role": { "type": "string" },
+                    "runes": {
+                      "type": "object",
+                      "properties": {
+                        "keystone": { "type": "string" },
+                        "secondary": { "type": "string" }
+                      },
+                      "required": ["keystone", "secondary"]
+                    },
+                    "build": { "type": "array", "items": { "type": "string" } }
+                  },
+                  "required": ["name", "player", "role"]
+                }
+              },
+              "timeline": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "timestamp": { "type": "string", "pattern": "^\\d{2}:\\d{2}:\\d{2}$" },
+                    "event_type": { "type": "string", "enum": ["Kill", "TurretDestroyed"] },
+                    "player": { "type": "string" },
+                    "target": { "type": "string" },
+                    "assists": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            },
+            "required": ["start_time", "end_time", "result", "champions", "timeline"]
+          }
+        }
+      },
+      "required": ["source", "analysis_date", "games"]
+    }
+  },
+  "required": ["stream_metadata"]
+}
