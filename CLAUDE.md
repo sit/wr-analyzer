@@ -2,9 +2,10 @@
 
 ## Setup
 
-This repo uses Git LFS to store video files (*.mp4). After cloning, install and pull LFS assets:
+This repo uses Git LFS to store video files (*.mp4). Git LFS is not installed by default and must be installed first:
 
 ```sh
+apt-get update && apt-get install -y git-lfs
 git lfs install
 git lfs pull
 ```
