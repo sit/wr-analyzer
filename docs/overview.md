@@ -6,12 +6,14 @@ their own game play.
 
 Wild Rift is a mobile game and as such there is a lot of visual structure in
 the video stream: player avatars, a map with player icons, records of gold,
-kills, virtual buttons, etc. Players may also view special screens to purchase
-items, or view game statistics. These screens also have visual structure we can
-rely on. A game is normally between 15 and 25 minutes in length and
-typically played at 60fps on a phone or tablet device such as an iPad.
+kills/deaths/assists, virtual buttons, and more. Players may also activate modals
+to purchase items, or view game statistics. Players may customize the layout of
+their UI but most players make only minor variations on the default layout.
 
-The analyzer will produce a structured data file that provides 
+A game is normally between 15 and 25 minutes in length and typically played at 60fps
+on a phone or tablet device.
+
+The analyzer will produce a structured data file that provides
 - Stream metadata:
     - filename / URL / source
     - start and end time of each game in the stream
@@ -29,32 +31,25 @@ The analyzer will produce a structured data file that provides
         - movement (optional)
         - camera panning (optional)
 
-Wild Rift Analyzer is a web application that will have a freemium model. People can submit
-YouTube or Twitch URLs of game play, and the application will analyze them. The free mode
-will extract only rudimentary data to give a sense of the capability (e.g., find the first
-player kill). Paying members will be able to get in-depth metadata of their games.
-
 Future features may allow for:
-- intermediate gameplay analysis such as percentage of game time the player is dead, idle, 
+- intermediate gameplay analysis such as percentage of game time the player is dead, idle,
 - more advanced analysis of gameplay, such as tempo, wave state, jungle camp status, jungle invasions,
   player pathing, fight positioning, etc.
-- a game catalog where users can identify other games with similar situations for study
-- a mobile app add-on that can record/stream video and assist in performing some or all
-  analysis locally, and then uploading metadata to the site for these other functions.
 
 ## Key Components
 
 ### Video Preprocessing
 
-- Frame Extraction: Use a library like FFmpeg to extract frames at key intervals or detect scene changes (e.g., transitioning to match summary screens).
+- Frame Extraction: Extract frames at key intervals or detect scene changes (cuts/edits by the video editor,
+  panning the camera, activating modals such as scoreboard, item shop, champ select or end of game stats, lobby)
 - Resolution Normalization: Ensure consistent resolution across frames for reliable analysis.
-Frame Deduplication: Skip redundant frames during non-action moments to save processing power.
+- Frame Deduplication: Skip redundant frames during non-action moments to save processing power.
 
 ### Object and Text Detection
 
-- Object Detection Models: Detect champions, map elements, items, and UI elements using models fine-tuned for the Wild Rift interface (e.g., YOLOv8 or Detectron2).
+- Object Detection Models: Detect champions, map elements, items, and UI elements using models fine-tuned for the Wild Rift interface
 - Use region-based detection to isolate UI panels like the scoreboard or item shop.
-- OCR for Text Data: Extract player stats (gold, kills, deaths) and timestamps using OCR tools like Tesseract or EasyOCR, combined with text-region detection models for game-specific fonts.
+- OCR for Text Data: Extract player stats (gold, kills, deaths) and timestamps using OCR tools like Tesseract
 
 ### Timeline and Event Detection
 
@@ -69,32 +64,37 @@ Frame Deduplication: Skip redundant frames during non-action moments to save pro
 
 ### Data output / storage
 
-Aggregate and structure extracted data into JSON. See below for a full schema description.
+Aggregate and structure extracted data into JSON. See schema.json for a proposed schema.
+YAML or TOML should be considered as an easier to generate and read for human format though.
 
 A database of games, allowing for analysis.
 
-## Deployment Modes
+## Development notes
 
 Portability and flexibility is a key goal of the project.
 
 Software development will be done on a MacBook Pro (M1Pro). It should be possible to
 run much of the core logic on the laptop, and take advantage of M1Pro hardware
-for acceleration as much as possible.
+for acceleration as much as possible. Development may also take place on sandboxed Linux VMs.
 
-A web app would run in some sort of cloud environment (e.g., AWS or GCP).
+If specially trained models might be helpful (e.g., finetuned multimodal models or
+even more traditional models), it should be ideally runnable on Apple Silicon and then
+using GPUs accessible through cloud providers such as GCP, AWS or Cloudflare etc.
 
-An iOS or Android client app would be a scaled down version that could either
-provide whatever analysis can be performed locally alone, or connect to a cloud
-version that can provide more horsepower for analysis and also an environment
-for reviewing and collecting multiple games.
+Future work may include:
+- packaging functionality into a webapp that allows a user to point to a
+  YT or Twitch stream or upload a VOD.
+- An iOS or Android client app would be a scaled down version that could either
+  provide whatever analysis can be performed locally alone, or connect to a
+  cloud version that can provide more horsepower for analysis and also an
+  environment for reviewing and collecting multiple games.
 
 The implementation should be able to share as much as possible (any training models, etc)
-between these different hosting/execution modes.
+between these different hosting/execution modes. However, we should NOT build ahead.
 
-## Development Milestones
-
-1. Local prototyping.
-2. Webapp
+We should aim to have unit tests as appropriate, golden data sets with evals to ensure any
+ML or LLM work is accurate. It is reasonable for an LLM to ask a human to annotate certain
+frames to assist in accurately determine what to do.
 
 ## Related Work
 
