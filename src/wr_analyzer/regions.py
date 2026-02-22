@@ -63,14 +63,23 @@ class Region:
 
 # ---------------------------------------------------------------------------
 # Predefined regions for the default Wild Rift HUD layout
+#
+# Calibrated against 854x394 sample video.  The in-game HUD places the
+# scoreboard in the top-right (not top-center).
 # ---------------------------------------------------------------------------
 
-# Game clock ("12:34") — top center of screen
-GAME_TIMER = Region(x=0.44, y=0.0, w=0.12, h=0.08)
+# Broad scoreboard area — captures kills "# VS #", timer, and KDA.
+# Useful for a single OCR pass when individual regions are too noisy.
+SCOREBOARD = Region(x=0.70, y=0.0, w=0.17, h=0.12)
 
-# Team kill scores — flanking the timer
-KILLS_BLUE = Region(x=0.35, y=0.0, w=0.09, h=0.07)
-KILLS_RED = Region(x=0.56, y=0.0, w=0.09, h=0.07)
+# Game clock ("12:34") — top-right, second row below kill scores
+GAME_TIMER = Region(x=0.71, y=0.04, w=0.08, h=0.06)
+
+# Team kill scores ("# VS #") — top-right, first row
+KILLS = Region(x=0.70, y=0.0, w=0.13, h=0.06)
+
+# Player KDA ("K/D/A") — top-right, right of kill scores
+PLAYER_KDA = Region(x=0.81, y=0.0, w=0.07, h=0.06)
 
 # Minimap — top-left corner (default placement)
 MINIMAP = Region(x=0.0, y=0.0, w=0.22, h=0.45)

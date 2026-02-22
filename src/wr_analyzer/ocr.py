@@ -11,7 +11,11 @@ from wr_analyzer.regions import Region
 
 
 def preprocess(image: np.ndarray, scale: int = 3) -> np.ndarray:
-    """Prepare a BGR crop for OCR: grayscale → resize → threshold.
+    """Prepare a BGR crop for OCR: grayscale → resize → adaptive threshold.
+
+    Best for text on varying-brightness backgrounds (e.g. synthetic test
+    images).  For light text on dark game-UI backgrounds, prefer
+    :func:`preprocess_otsu`.
 
     Parameters
     ----------
@@ -38,6 +42,34 @@ def preprocess(image: np.ndarray, scale: int = 3) -> np.ndarray:
     binary = cv2.adaptiveThreshold(
         gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 10
     )
+    return binary
+
+
+def preprocess_otsu(image: np.ndarray, scale: int = 5) -> np.ndarray:
+    """Prepare a BGR crop for OCR using OTSU thresholding.
+
+    Better than adaptive threshold for the Wild Rift in-game HUD where
+    light text (white / blue / red) sits on a dark semi-transparent
+    background.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        BGR image (OpenCV format).
+    scale : int
+        Upscale factor before thresholding.
+
+    Returns
+    -------
+    np.ndarray
+        Binary single-channel image.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    if scale > 1:
+        gray = cv2.resize(
+            gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC
+        )
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return binary
 
 
