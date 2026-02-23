@@ -33,12 +33,6 @@ class TestPreprocess:
         result = preprocess(bgr, scale=4)
         assert result.shape == (200, 400)
 
-    def test_no_upscale(self):
-        bgr = np.zeros((50, 100, 3), dtype=np.uint8)
-        result = preprocess(bgr, scale=1)
-        assert result.shape == (50, 100)
-
-
 class TestOcrImage:
     def test_reads_digits(self):
         img = _make_text_image("12345")

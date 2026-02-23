@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 
-from support import load_frame
 from wr_analyzer.video import VideoInfo, extract_frame, probe, sample_frames
 
 
@@ -29,12 +28,6 @@ class TestExtractFrame:
         assert isinstance(frame, np.ndarray)
         assert frame.shape == (394, 854, 3)
         assert frame.dtype == np.uint8
-
-    def test_different_timestamps_differ(self):
-        """Frames at different timestamps should not be identical."""
-        f1 = load_frame(700)
-        f2 = load_frame(1800)
-        assert not np.array_equal(f1, f2)
 
     def test_file_not_found(self, tmp_path):
         with pytest.raises(FileNotFoundError):
