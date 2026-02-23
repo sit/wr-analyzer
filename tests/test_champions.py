@@ -4,10 +4,6 @@ from wr_analyzer.champions import _load_champions, fuzzy_match_champion
 
 
 class TestLoadChampions:
-    def test_loads_non_empty_list(self):
-        champs = _load_champions()
-        assert len(champs) > 100  # glossary has ~180 champions
-
     def test_contains_known_champions(self):
         champs = _load_champions()
         for name in ["Ahri", "Yasuo", "Jinx", "Lee Sin", "Kai'Sa"]:

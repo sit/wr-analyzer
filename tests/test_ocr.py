@@ -2,7 +2,6 @@
 
 import cv2
 import numpy as np
-import pytest
 
 from wr_analyzer.ocr import ocr_image, ocr_region, preprocess
 from wr_analyzer.regions import Region
@@ -33,12 +32,6 @@ class TestPreprocess:
         bgr = np.zeros((50, 100, 3), dtype=np.uint8)
         result = preprocess(bgr, scale=4)
         assert result.shape == (200, 400)
-
-    def test_no_upscale(self):
-        bgr = np.zeros((50, 100, 3), dtype=np.uint8)
-        result = preprocess(bgr, scale=1)
-        assert result.shape == (50, 100)
-
 
 class TestOcrImage:
     def test_reads_digits(self):

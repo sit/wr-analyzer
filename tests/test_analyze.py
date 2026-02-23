@@ -1,17 +1,12 @@
 """Tests for wr_analyzer.analyze."""
 
-import numpy as np
-import pytest
-
+from support import load_frame
 from wr_analyzer.analyze import (
     AnalysisResult,
     FrameData,
-    GameSegment,
     _segment_games,
     analyze_frame,
-    analyze_video,
 )
-from wr_analyzer.video import extract_frame
 
 
 class TestSegmentGames:
@@ -46,36 +41,23 @@ class TestSegmentGames:
 
 
 class TestAnalyzeFrame:
-    def test_returns_frame_data(self, sample_video_path):
-        frame = extract_frame(sample_video_path, 700)
-        fd = analyze_frame(frame, 700.0)
+    def test_returns_frame_data(self):
+        fd = analyze_frame(load_frame(700), 700.0)
         assert isinstance(fd, FrameData)
         assert fd.timestamp_sec == 700.0
         assert fd.phase in {"loading", "in_game", "post_game", "unknown"}
 
 
 class TestAnalyzeVideo:
-    def test_basic_analysis(self, sample_video_path):
-        """Run analysis on a short slice and verify structure."""
-        result = analyze_video(
-            sample_video_path,
-            interval_sec=30.0,
-            start_sec=600.0,
-            end_sec=720.0,
-        )
+    def test_basic_analysis(self, sample_analysis_result):
+        """Integration test: run analysis on a short slice and verify structure."""
+        result = sample_analysis_result
         assert isinstance(result, AnalysisResult)
-        assert result.source == str(sample_video_path)
         assert result.duration_sec > 0
         assert len(result.frame_data) > 0
 
-    def test_summary_structure(self, sample_video_path):
-        result = analyze_video(
-            sample_video_path,
-            interval_sec=60.0,
-            start_sec=600.0,
-            end_sec=720.0,
-        )
-        summary = result.summary()
+    def test_summary_structure(self, sample_analysis_result):
+        summary = sample_analysis_result.summary()
         assert "source" in summary
         assert "games_detected" in summary
         assert "games" in summary

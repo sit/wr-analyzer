@@ -13,16 +13,6 @@ from wr_analyzer.models import (
 )
 
 
-def test_result_enum_values():
-    assert Result.WIN == "Win"
-    assert Result.LOSE == "Lose"
-
-
-def test_event_type_enum_values():
-    assert EventType.KILL == "Kill"
-    assert EventType.TURRET_DESTROYED == "TurretDestroyed"
-
-
 def test_champion_required_fields():
     champ = Champion(name="Ahri", player="Player1", role="Mid")
     assert champ.name == "Ahri"

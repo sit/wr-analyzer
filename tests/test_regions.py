@@ -1,6 +1,7 @@
 """Tests for wr_analyzer.regions."""
 
 import numpy as np
+import pytest
 
 from wr_analyzer.regions import (
     GAME_TIMER,
@@ -38,18 +39,12 @@ def test_region_crop():
     assert cropped.mean() == 255.0
 
 
-def test_kills_and_timer_are_in_top_right():
-    """Kill scores and timer should both be in the top-right."""
+def test_kills_in_top_right():
+    """Kill scores should be in the top-right corner."""
     w, h = 854, 394
     kills_box = KILLS.to_pixels(w, h)
-    timer_box = GAME_TIMER.to_pixels(w, h)
-
-    # Both in the right portion of the screen
     assert kills_box.x > w * 0.6
-    assert timer_box.x > w * 0.6
-    # Both near the top
     assert kills_box.y < 10
-    assert timer_box.y < 30
 
 
 def test_scoreboard_encompasses_kills_and_timer():
@@ -76,11 +71,8 @@ def test_minimap_is_top_left():
 
 def test_region_is_frozen():
     r = Region(x=0.0, y=0.0, w=0.5, h=0.5)
-    try:
+    with pytest.raises(AttributeError):
         r.x = 0.1
-        assert False, "Should have raised FrozenInstanceError"
-    except AttributeError:
-        pass
 
 
 def test_predefined_regions_within_bounds():

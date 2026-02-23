@@ -28,3 +28,9 @@ packages = ["src/wr_analyzer"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
