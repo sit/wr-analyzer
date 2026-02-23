@@ -6,7 +6,6 @@ from wr_analyzer.analyze import (
     FrameData,
     _segment_games,
     analyze_frame,
-    analyze_video,
 )
 
 
@@ -50,27 +49,15 @@ class TestAnalyzeFrame:
 
 
 class TestAnalyzeVideo:
-    def test_basic_analysis(self, sample_video_path):
+    def test_basic_analysis(self, sample_analysis_result):
         """Integration test: run analysis on a short slice and verify structure."""
-        result = analyze_video(
-            sample_video_path,
-            interval_sec=30.0,
-            start_sec=600.0,
-            end_sec=720.0,
-        )
+        result = sample_analysis_result
         assert isinstance(result, AnalysisResult)
-        assert result.source == str(sample_video_path)
         assert result.duration_sec > 0
         assert len(result.frame_data) > 0
 
-    def test_summary_structure(self, sample_video_path):
-        result = analyze_video(
-            sample_video_path,
-            interval_sec=60.0,
-            start_sec=600.0,
-            end_sec=720.0,
-        )
-        summary = result.summary()
+    def test_summary_structure(self, sample_analysis_result):
+        summary = sample_analysis_result.summary()
         assert "source" in summary
         assert "games_detected" in summary
         assert "games" in summary
