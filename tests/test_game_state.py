@@ -34,3 +34,11 @@ class TestDetectGamePhase:
         """A very bright frame should be classified as post_game."""
         bright = np.full((394, 854, 3), 200, dtype=np.uint8)
         assert detect_game_phase(bright) == "post_game"
+
+    def test_victory_frame_is_post_game(self):
+        """The VICTORY banner frame should be classified as post_game."""
+        assert detect_game_phase(load_frame(2190)) == "post_game"
+
+    def test_scoreboard_frame_is_post_game(self):
+        """The post-game scoreboard should be classified as post_game."""
+        assert detect_game_phase(load_frame(2205)) == "post_game"
