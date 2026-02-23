@@ -59,5 +59,5 @@ uv run pytest
 
 - OCR accuracy is ~20–30% per frame at 854x394. The analyzer compensates by sampling many frames.
 - Kill score OCR occasionally misreads digits (e.g. "25" → "75"). Timer readings are more reliable.
-- Champion identification from in-game frames is not yet reliable. Post-game scoreboard parsing would be the highest-value next step.
+- Champion identification from in-game frames is not yet reliable.
 - Calibrated against a single sample video. Region positions may need tuning for different recording setups.

@@ -89,15 +89,129 @@ wr-analyzer/
 - Regions are calibrated for one sample video. Different recording setups or resolutions may need tuning.
 - The analyzer detects one game correctly in the sample video but has not been tested with multi-game VODs.
 
+## Future Consideration: Layout & Device Variability
+
+Wild Rift is played on a wide range of phones and tablets with different aspect ratios (16:9, 18:9, 19.5:9, 20:9, etc.), and players can reposition and resize HUD elements (minimap corner, joystick, skill buttons, etc.). This means:
+
+- The ratio-based `Region` definitions in `regions.py` that are calibrated to one device/recording will drift for others.
+- This applies to **all** screens: in-game HUD, loading screen, post-game scoreboard — each may have a different layout per device.
+- Before this becomes a multi-user tool, we will likely need a calibration step: either auto-detection of anchor points (minimap corner, joystick, scoreboard header) or a one-time user-guided calibration that records offsets for their specific device and HUD layout.
+- Tests and golden frames should be tagged with the source device/aspect ratio so regressions are meaningful.
+
 ## Next Steps
 
 High-value work not yet started:
 
-1. **Post-game scoreboard parsing** — the victory/defeat screen contains all 10 players' names, champions, KDA, and gold in a structured layout. Easiest source of accurate game data.
-2. **Win/loss detection** — detect "VICTORY"/"DEFEAT" text from the end-of-game banner.
-3. **Champion identification from loading screen** — the loading screen shows all 10 champion splash arts and names.
-4. **Timeline event extraction** — parse the kill feed (EVENT_FEED region) for individual kill/death events.
-5. **OCR accuracy improvements** — higher resolution video, better preprocessing, or a lightweight ML model for digit recognition.
+1. **Win/loss detection + post-game scoreboard parsing** *(in progress — see plan below)*
+2. **Champion identification from loading screen** — the loading screen shows all 10 champion splash arts and names.
+3. **Timeline event extraction** — parse the kill feed (EVENT_FEED region) for individual kill/death events.
+4. **OCR accuracy improvements** — higher resolution video, better preprocessing, or a lightweight ML model for digit recognition.
+
+### Plan: Win/Loss Detection + Post-Game Scoreboard (Items 1 & 2)
+
+These are tackled together because both data sources live on the same post-game screen.
+
+#### New module: `postgame.py`
+
+```
+detect_result(frame) → "Win" | "Lose" | None
+```
+- OCR a center-top banner region (`POSTGAME_BANNER`) for the text "VICTORY" or "DEFEAT".
+- Fallback: dominant hue in the banner region (green → Win, red/purple → Lose).
+- Returns `None` if neither signal is confident.
+
+```
+parse_scoreboard(frame) → PostgameData | None
+```
+- Parses the full post-game stats table.
+- Wild Rift's default layout stacks blue team (top) and red team (bottom) in a table with columns: player name, champion, KDA, gold, items.
+- Returns a `PostgameData` dataclass containing `result`, `blue_team: list[PlayerRow]`, `red_team: list[PlayerRow]`.
+
+```
+@dataclass
+class PlayerRow:
+    player: str
+    champion: str | None   # fuzzy-matched via champions.py
+    kills: int | None
+    deaths: int | None
+    assists: int | None
+    gold: int | None
+```
+
+#### New regions in `regions.py`
+
+```python
+POSTGAME_BANNER      # center-top strip — "VICTORY" / "DEFEAT" text
+POSTGAME_BLUE_TEAM   # rows for the 5 blue-side players
+POSTGAME_RED_TEAM    # rows for the 5 red-side players
+```
+
+Initial coordinates are best guesses; they need calibration against actual post-game frames from the sample video.  Extraction of individual player rows is done by subdividing the team region into 5 equal horizontal strips.
+
+#### Changes to `game_state.py`
+
+- `detect_game_phase` already returns `"post_game"` for bright frames.
+- No changes needed here; `postgame.py` is called downstream by the orchestrator.
+
+#### Changes to `analyze.py`
+
+- `GameSegment` gains optional fields: `result: str | None` and `postgame_frame_ts: float | None`.
+- After segmenting in-game frames, scan forward from each segment's `end_sec` for the first `"post_game"` frame (within a reasonable window, e.g. 120 s).
+- If found, call `detect_result` and `parse_scoreboard` on that frame and attach results to the segment.
+- `AnalysisResult.summary()` updated to include `result` and `scoreboard`.
+
+#### Changes to `models.py`
+
+- `Game.result` is already `Result` — just needs populating.
+- `Champion` already has `name`, `player`; `role` will remain empty until role detection is added.
+- `Game.champions` populated from `PostgameData.blue_team + red_team`.
+
+#### New tests: `tests/test_postgame.py`
+
+- `test_detect_result_victory` — synthetic bright-green frame → `"Win"`.
+- `test_detect_result_defeat` — synthetic red frame → `"Lose"`.
+- `test_detect_result_non_postgame` → `None`.
+- `test_parse_scoreboard_*` — with a captured post-game frame from the sample video (skipped if LFS not pulled).
+
+#### Calibration note
+
+Region coordinates for the post-game screen cannot be finalized without inspecting actual post-game frames.  The first implementation step is to extract a post-game frame from the sample video, inspect it, and measure the banner and table positions before writing the OCR logic.
+
+## Platform & Portability
+
+Portability is a first-class goal.
+
+- **Primary development environment**: MacBook Pro M1 Pro. Core logic must run locally; M1/Apple Silicon GPU acceleration (via Metal / Core ML) should be exploited where available.
+- **Secondary environment**: sandboxed Linux VMs (CI, cloud workers).
+- **ML models**: any custom or fine-tuned models must run on Apple Silicon locally and on cloud GPU providers (GCP, AWS, Cloudflare Workers AI) for heavier workloads. Avoid hard platform dependencies.
+- **Don't build ahead**: do not add web, cloud, or mobile plumbing until the core analysis pipeline is proven correct.
+
+## Long-term Backlog
+
+These are intentionally deferred until the core pipeline is solid:
+
+- **Web app** — accept a YouTube/Twitch URL or VOD upload; run analysis server-side.
+- **iOS / Android client** — lightweight on-device analysis with optional cloud offload.
+- **Advanced gameplay analysis** — tempo, wave state, jungle camp status, fight positioning, player pathing.
+- **Intermediate stats** — percentage of game time dead, idle, etc.
+- Shared models/weights across all hosting modes.
+
+## Testing Philosophy
+
+- Unit tests for every module (currently 72 tests).
+- **Golden frame sets** with eval scripts to catch regressions in OCR/detection accuracy. Tag each golden frame with source device and aspect ratio.
+- For ML or LLM-assisted steps, maintain annotated ground-truth datasets. It is acceptable to request human annotation of ambiguous frames.
+- Video fixtures tracked in Git LFS; tests skip gracefully when LFS is not pulled.
+
+## Data Storage
+
+- Primary output: JSON (see `docs/schema.json`).
+- YAML or TOML are worth considering as a more human-readable alternative for single-game reports.
+- Long-term: a local database (e.g. SQLite) to accumulate games across sessions and enable trend analysis.
+
+## Related Work
+
+- https://github.com/PepeTapia/WildAI
 
 ## Dependencies
 
