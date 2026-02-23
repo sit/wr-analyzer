@@ -17,6 +17,7 @@ wr-analyzer/
 │       ├── kda.py              # kills/deaths/assists extraction
 │       ├── champions.py        # champion name identification
 │       ├── game_state.py       # game start/end boundary detection
+│       ├── result.py           # win/loss detection from post-game screens
 │       └── analyze.py          # orchestrator: ties modules together
 ├── tests/
 │   ├── conftest.py
@@ -28,6 +29,7 @@ wr-analyzer/
 │   ├── test_kda.py
 │   ├── test_game_state.py
 │   ├── test_champions.py
+│   ├── test_result.py
 │   └── test_analyze.py
 ├── videos/                     # LFS-tracked sample videos
 ├── docs/                       # vision, glossary, schema
@@ -64,7 +66,12 @@ wr-analyzer/
 
 ### `game_state.py` ✅
 - `detect_game_phase(frame)` → `"loading"` | `"in_game"` | `"post_game"` | `"unknown"`
-- Primary signal: timer OCR. Fallback: HUD brightness heuristic (kills region pixel analysis)
+- Primary signal: timer OCR. Fallback: VICTORY/DEFEAT OCR for post-game, then HUD brightness heuristic
+
+### `result.py` ✅
+- `detect_result(frame)` → `"victory"` | `"defeat"` | `None`
+- OCR-based detection of VICTORY/DEFEAT text on post-game banner and scoreboard
+- Tries two regions: centred banner (animated splash) and top-strip (scoreboard header)
 
 ### `champions.py` ✅
 - `fuzzy_match_champion(text)` → champion name or `None`
@@ -74,7 +81,8 @@ wr-analyzer/
 ### `analyze.py` ✅
 - `analyze_video(path, interval_sec)` → `AnalysisResult`
 - Samples frames, classifies phases, segments consecutive in-game frames into games
-- Extracts timer, kill scores, and KDA per game
+- Extracts timer, kill scores, KDA, and win/loss result per game
+- Attaches post-game frames to game segments for result extraction
 
 ### `models.py` ✅
 - `StreamAnalysis`, `Game`, `Champion`, `TimelineEvent`, `Runes`
@@ -91,10 +99,8 @@ wr-analyzer/
 
 ## Next Steps
 
-High-value work not yet started:
-
-1. **Post-game scoreboard parsing** — the victory/defeat screen contains all 10 players' names, champions, KDA, and gold in a structured layout. Easiest source of accurate game data.
-2. **Win/loss detection** — detect "VICTORY"/"DEFEAT" text from the end-of-game banner.
+1. ~~**Win/loss detection**~~ ✅ — `result.py` detects "VICTORY"/"DEFEAT" from post-game banner and scoreboard via OCR; integrated into `game_state.py` phase detection and `analyze.py` game segments.
+2. **Post-game scoreboard parsing** — the victory/defeat screen contains all 10 players' names, champions, KDA, and gold in a structured layout. Easiest source of accurate per-player game data.
 3. **Champion identification from loading screen** — the loading screen shows all 10 champion splash arts and names.
 4. **Timeline event extraction** — parse the kill feed (EVENT_FEED region) for individual kill/death events.
 5. **OCR accuracy improvements** — higher resolution video, better preprocessing, or a lightweight ML model for digit recognition.

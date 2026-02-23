@@ -12,7 +12,8 @@ uv sync
 
 ```sh
 uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse sample video
-uv run pytest                                  # 72 tests
+uv run pytest                                  # 77 tests
+uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video
 ```
 
 ## Module map
@@ -27,6 +28,7 @@ uv run pytest                                  # 72 tests
 | `timer.py` | Game clock MM:SS detection |
 | `kda.py` | Team kill scores and player KDA |
 | `game_state.py` | Phase detection: loading / in_game / post_game |
+| `result.py` | Win/loss detection from VICTORY/DEFEAT post-game screens |
 | `champions.py` | Fuzzy match OCR text to glossary champion names |
 | `analyze.py` | Orchestrator: sample frames → segment games → extract data |
 | `models.py` | Dataclasses matching `docs/schema.json` |

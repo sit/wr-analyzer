@@ -101,7 +101,8 @@ def main(argv: list[str] | None = None) -> None:
         print(f"\nGames detected: {len(result.games)}")
         for i, g in enumerate(result.games, 1):
             dur = (g.end_sec - g.start_sec) / 60
-            print(f"\n  Game {i}  (video {g.start_sec:.0f}s – {g.end_sec:.0f}s, {dur:.1f} min span)")
+            result_str = g.result.upper() if g.result else "unknown"
+            print(f"\n  Game {i}  [{result_str}]  (video {g.start_sec:.0f}s – {g.end_sec:.0f}s, {dur:.1f} min span)")
             if g.first_game_time:
                 print(f"    First clock: {g.first_game_time}")
             if g.last_game_time:

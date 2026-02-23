@@ -4,6 +4,7 @@ from support import load_frame
 from wr_analyzer.analyze import (
     AnalysisResult,
     FrameData,
+    GameSegment,
     _segment_games,
     analyze_frame,
 )
@@ -39,13 +40,36 @@ class TestSegmentGames:
         segments = _segment_games(frames)
         assert len(segments) == 0
 
+    def test_post_game_frames_attached(self):
+        """Post-game frames following a segment should be attached."""
+        game = [self._make_frame(t, "in_game") for t in range(0, 300, 10)]
+        post = [FrameData(timestamp_sec=310, phase="post_game", result="victory")]
+        segments = _segment_games(game + post, min_gap_sec=30, min_duration_sec=60)
+        assert len(segments) == 1
+        assert len(segments[0].post_game_frames) == 1
+        assert segments[0].result == "victory"
+
+    def test_post_game_not_attached_if_too_far(self):
+        """Post-game frames beyond min_gap_sec should not be attached."""
+        game = [self._make_frame(t, "in_game") for t in range(0, 300, 10)]
+        post = [FrameData(timestamp_sec=400, phase="post_game", result="victory")]
+        segments = _segment_games(game + post, min_gap_sec=30, min_duration_sec=60)
+        assert len(segments) == 1
+        assert len(segments[0].post_game_frames) == 0
+        assert segments[0].result is None
+
 
 class TestAnalyzeFrame:
     def test_returns_frame_data(self):
-        fd = analyze_frame(load_frame(700), 700.0)
+        fd = analyze_frame(load_frame("in_game_06"), 700.0)
         assert isinstance(fd, FrameData)
         assert fd.timestamp_sec == 700.0
         assert fd.phase in {"loading", "in_game", "post_game", "unknown"}
+
+    def test_post_game_frame_has_result(self):
+        fd = analyze_frame(load_frame("postgame_victory_banner"), 2190.0)
+        assert fd.phase == "post_game"
+        assert fd.result == "victory"
 
 
 class TestAnalyzeVideo:

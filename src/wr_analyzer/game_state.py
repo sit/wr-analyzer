@@ -8,7 +8,7 @@ heuristics in each frame:
 * **loading** — the top-right HUD area is very dark (no scoreboard) and
   the overall frame brightness is low.
 * **post_game** — the frame is significantly brighter than a normal
-  in-game frame (end-of-game stats screen).
+  in-game frame, *or* contains a VICTORY/DEFEAT banner.
 * **unknown** — none of the above matched.
 """
 
@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 
 from wr_analyzer.regions import KILLS, SCOREBOARD
+from wr_analyzer.result import detect_result
 from wr_analyzer.timer import detect_game_time
 
 # Brightness thresholds (mean grayscale of entire frame).
@@ -71,6 +72,12 @@ def detect_game_phase(frame: np.ndarray) -> str:
 
     # End-of-game stat screens tend to be bright (white/light backgrounds).
     if mean_brightness > _POSTGAME_BRIGHTNESS_MIN:
+        return "post_game"
+
+    # The VICTORY/DEFEAT banner appears on post-game screens that aren't
+    # necessarily bright overall (e.g. the scoreboard or animated banner).
+    # Only run this OCR check when simpler heuristics haven't matched.
+    if detect_result(frame) is not None:
         return "post_game"
 
     # Fallback: if the kills HUD region contains bright pixels typical of

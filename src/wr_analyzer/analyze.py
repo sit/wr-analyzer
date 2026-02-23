@@ -15,6 +15,7 @@ import numpy as np
 
 from wr_analyzer.game_state import detect_game_phase
 from wr_analyzer.kda import PlayerKDA, TeamKills, detect_player_kda, detect_team_kills
+from wr_analyzer.result import detect_result
 from wr_analyzer.timer import detect_game_time
 from wr_analyzer.video import extract_frame, probe
 
@@ -28,15 +29,25 @@ class FrameData:
     game_time: str | None = None
     team_kills: TeamKills | None = None
     player_kda: PlayerKDA | None = None
+    result: str | None = None  # "victory" or "defeat" for post_game frames
 
 
 @dataclass
 class GameSegment:
-    """A contiguous stretch of in-game frames."""
+    """A contiguous stretch of in-game frames plus trailing post-game data."""
 
     start_sec: float
     end_sec: float
     frames: list[FrameData] = field(default_factory=list)
+    post_game_frames: list[FrameData] = field(default_factory=list)
+
+    @property
+    def result(self) -> str | None:
+        """Return ``"victory"`` or ``"defeat"`` from the first post-game frame."""
+        for f in self.post_game_frames:
+            if f.result is not None:
+                return f.result
+        return None
 
     @property
     def first_game_time(self) -> str | None:
@@ -85,6 +96,7 @@ class AnalysisResult:
                 "game": i,
                 "video_start_sec": g.start_sec,
                 "video_end_sec": g.end_sec,
+                "result": g.result,
                 "first_game_time": g.first_game_time,
                 "last_game_time": g.last_game_time,
             }
@@ -119,6 +131,10 @@ def _segment_games(
     A new segment starts when the gap between consecutive in-game frames
     exceeds *min_gap_sec*.  Segments shorter than *min_duration_sec* are
     discarded (likely false positives).
+
+    Post-game frames that immediately follow a segment (within
+    *min_gap_sec*) are attached to it so that win/loss results
+    can be extracted.
     """
     in_game = [f for f in frames if f.phase == "in_game"]
     if not in_game:
@@ -137,7 +153,16 @@ def _segment_games(
 
     segments.append(current)
 
-    return [s for s in segments if (s.end_sec - s.start_sec) >= min_duration_sec]
+    kept = [s for s in segments if (s.end_sec - s.start_sec) >= min_duration_sec]
+
+    # Attach post-game frames that follow each segment.
+    post_game = [f for f in frames if f.phase == "post_game"]
+    for seg in kept:
+        for f in post_game:
+            if f.timestamp_sec > seg.end_sec and f.timestamp_sec <= seg.end_sec + min_gap_sec:
+                seg.post_game_frames.append(f)
+
+    return kept
 
 
 def analyze_frame(frame: np.ndarray, timestamp_sec: float) -> FrameData:
@@ -147,11 +172,14 @@ def analyze_frame(frame: np.ndarray, timestamp_sec: float) -> FrameData:
     game_time = None
     team_kills = None
     player_kda = None
+    result = None
 
     if phase == "in_game":
         game_time = detect_game_time(frame)
         team_kills = detect_team_kills(frame)
         player_kda = detect_player_kda(frame)
+    elif phase == "post_game":
+        result = detect_result(frame)
 
     return FrameData(
         timestamp_sec=timestamp_sec,
@@ -159,6 +187,7 @@ def analyze_frame(frame: np.ndarray, timestamp_sec: float) -> FrameData:
         game_time=game_time,
         team_kills=team_kills,
         player_kda=player_kda,
+        result=result,
     )
 
 
