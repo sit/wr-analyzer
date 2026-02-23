@@ -177,42 +177,6 @@ Initial coordinates are best guesses; they need calibration against actual post-
 
 Region coordinates for the post-game screen cannot be finalized without inspecting actual post-game frames.  The first implementation step is to extract a post-game frame from the sample video, inspect it, and measure the banner and table positions before writing the OCR logic.
 
-## Platform & Portability
-
-Portability is a first-class goal.
-
-- **Primary development environment**: MacBook Pro M1 Pro. Core logic must run locally; M1/Apple Silicon GPU acceleration (via Metal / Core ML) should be exploited where available.
-- **Secondary environment**: sandboxed Linux VMs (CI, cloud workers).
-- **ML models**: any custom or fine-tuned models must run on Apple Silicon locally and on cloud GPU providers (GCP, AWS, Cloudflare Workers AI) for heavier workloads. Avoid hard platform dependencies.
-- **Don't build ahead**: do not add web, cloud, or mobile plumbing until the core analysis pipeline is proven correct.
-
-## Long-term Backlog
-
-These are intentionally deferred until the core pipeline is solid:
-
-- **Web app** — accept a YouTube/Twitch URL or VOD upload; run analysis server-side.
-- **iOS / Android client** — lightweight on-device analysis with optional cloud offload.
-- **Advanced gameplay analysis** — tempo, wave state, jungle camp status, fight positioning, player pathing.
-- **Intermediate stats** — percentage of game time dead, idle, etc.
-- Shared models/weights across all hosting modes.
-
-## Testing Philosophy
-
-- Unit tests for every module (currently 72 tests).
-- **Golden frame sets** with eval scripts to catch regressions in OCR/detection accuracy. Tag each golden frame with source device and aspect ratio.
-- For ML or LLM-assisted steps, maintain annotated ground-truth datasets. It is acceptable to request human annotation of ambiguous frames.
-- Video fixtures tracked in Git LFS; tests skip gracefully when LFS is not pulled.
-
-## Data Storage
-
-- Primary output: JSON (see `docs/schema.json`).
-- YAML or TOML are worth considering as a more human-readable alternative for single-game reports.
-- Long-term: a local database (e.g. SQLite) to accumulate games across sessions and enable trend analysis.
-
-## Related Work
-
-- https://github.com/PepeTapia/WildAI
-
 ## Dependencies
 
 - `opencv-python-headless` — frame extraction and image processing
