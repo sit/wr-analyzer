@@ -6,10 +6,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from extract_fixtures import FRAME_DEFS
+
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures" / "frames"
 
 # All available in-game frame names, for tests that iterate over several.
-IN_GAME_FRAMES = [f"in_game_{i:02d}" for i in range(1, 12)]
+IN_GAME_FRAMES = [name for name, _ in FRAME_DEFS if name.startswith("in_game_")]
 
 
 @cache

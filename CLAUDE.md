@@ -13,6 +13,7 @@ uv sync
 ```sh
 uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse sample video
 uv run pytest                                  # 77 tests
+uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video
 ```
 
 ## Module map
