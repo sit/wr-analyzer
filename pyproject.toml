@@ -10,6 +10,9 @@ dependencies = [
     "rapidfuzz>=3.0",
 ]
 
+[project.scripts]
+wr-analyzer = "wr_analyzer.__main__:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
