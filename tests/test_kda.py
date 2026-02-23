@@ -1,6 +1,6 @@
 """Tests for wr_analyzer.kda."""
 
-from support import load_frame
+from support import IN_GAME_FRAMES, load_frame
 from wr_analyzer.kda import (
     PlayerKDA,
     TeamKills,
@@ -53,9 +53,10 @@ class TestKdaRegex:
 class TestDetectTeamKills:
     def test_in_game_frame(self):
         """At least some in-game frames should yield kill scores."""
+        sample = IN_GAME_FRAMES[1::2]  # 5 frames spread across the set
         readings = []
-        for ts in [700, 1200, 1500, 1800, 2000]:
-            result = detect_team_kills(load_frame(ts))
+        for name in sample:
+            result = detect_team_kills(load_frame(name))
             if result is not None:
                 readings.append(result)
                 assert isinstance(result, TeamKills)
@@ -71,8 +72,9 @@ class TestDetectPlayerKda:
         At 854x394 the KDA text is very small and OCR is unreliable,
         so we only verify that any detected results are well-formed.
         """
-        for ts in [700, 1200, 1500, 1800, 2000]:
-            result = detect_player_kda(load_frame(ts))
+        sample = IN_GAME_FRAMES[1::2]  # 5 frames spread across the set
+        for name in sample:
+            result = detect_player_kda(load_frame(name))
             if result is not None:
                 assert isinstance(result, PlayerKDA)
                 assert result.kills >= 0

@@ -61,13 +61,13 @@ class TestSegmentGames:
 
 class TestAnalyzeFrame:
     def test_returns_frame_data(self):
-        fd = analyze_frame(load_frame(700), 700.0)
+        fd = analyze_frame(load_frame("in_game_06"), 700.0)
         assert isinstance(fd, FrameData)
         assert fd.timestamp_sec == 700.0
         assert fd.phase in {"loading", "in_game", "post_game", "unknown"}
 
     def test_post_game_frame_has_result(self):
-        fd = analyze_frame(load_frame(2190), 2190.0)
+        fd = analyze_frame(load_frame("postgame_victory_banner"), 2190.0)
         assert fd.phase == "post_game"
         assert fd.result == "victory"
 

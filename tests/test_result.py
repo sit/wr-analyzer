@@ -9,20 +9,20 @@ from wr_analyzer.result import detect_result
 class TestDetectResult:
     def test_victory_banner(self):
         """The VICTORY banner frame should be detected as victory."""
-        assert detect_result(load_frame(2190)) == "victory"
+        assert detect_result(load_frame("postgame_victory_banner")) == "victory"
 
     def test_victory_scoreboard(self):
         """The post-game scoreboard with VICTORY header should be detected."""
-        assert detect_result(load_frame(2205)) == "victory"
+        assert detect_result(load_frame("postgame_victory_scoreboard")) == "victory"
 
     def test_in_game_returns_none(self):
         """In-game frames should not be detected as victory or defeat."""
-        for ts in [600, 900, 1200]:
-            assert detect_result(load_frame(ts)) is None
+        for name in ["in_game_02", "in_game_07", "in_game_08"]:
+            assert detect_result(load_frame(name)) is None
 
     def test_champ_select_returns_none(self):
         """Champion select frame should not trigger result detection."""
-        assert detect_result(load_frame(300)) is None
+        assert detect_result(load_frame("champ_select")) is None
 
     def test_black_frame_returns_none(self):
         """A black frame should not trigger result detection."""

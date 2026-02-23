@@ -1,6 +1,6 @@
 """Tests for wr_analyzer.timer."""
 
-from support import load_frame
+from support import IN_GAME_FRAMES, load_frame
 from wr_analyzer.timer import detect_game_time, parse_game_time
 
 
@@ -41,13 +41,14 @@ class TestParseGameTime:
 class TestDetectGameTime:
     def test_in_game_frame(self):
         """At least some in-game frames should yield a timer reading."""
-        readings = []
-        for ts in [700, 900, 1500, 1800, 2000]:
-            result = detect_game_time(load_frame(ts))
-            if result is not None:
-                readings.append(result)
+        sample = IN_GAME_FRAMES[1::2]  # 5 frames spread across the set
+        readings = [
+            detect_game_time(load_frame(name))
+            for name in sample
+            if detect_game_time(load_frame(name)) is not None
+        ]
         assert len(readings) >= 1
 
     def test_non_game_frame_returns_none(self):
         """Champ-select / loading frames should not return a timer."""
-        assert detect_game_time(load_frame(300)) is None
+        assert detect_game_time(load_frame("champ_select")) is None
