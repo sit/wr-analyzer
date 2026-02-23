@@ -1,19 +1,16 @@
 """Video loading and frame sampling.
 
-Uses ffmpeg/ffprobe via subprocess for broad codec support (including AV1).
+Uses OpenCV (cv2.VideoCapture) for decoding.
 """
 
 from __future__ import annotations
 
-import json
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
 import cv2
 import numpy as np
-
 
 @dataclass(frozen=True)
 class VideoInfo:
@@ -26,54 +23,38 @@ class VideoInfo:
 
 
 def probe(path: Path | str) -> VideoInfo:
-    """Read video metadata via *ffprobe*.
+    """Read video metadata via OpenCV.
 
     Raises
     ------
     FileNotFoundError
         If *path* does not exist.
     RuntimeError
-        If ffprobe fails to read the file.
+        If cv2 fails to open the file.
     """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(path)
 
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
-            "-show_format",
-            "-show_streams",
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    data = json.loads(result.stdout)
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open video: {path}")
 
-    # Find the video stream.
-    video_stream = None
-    for stream in data.get("streams", []):
-        if stream.get("codec_type") == "video":
-            video_stream = stream
-            break
-    if video_stream is None:
-        raise RuntimeError(f"No video stream found in {path}")
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    # Parse frame rate (e.g. "30/1").
-    r_num, r_den = video_stream["r_frame_rate"].split("/")
-    fps = int(r_num) / int(r_den)
+    cap.release()
+
+    duration = frame_count / fps if fps > 0 else 0.0
 
     return VideoInfo(
-        width=int(video_stream["width"]),
-        height=int(video_stream["height"]),
+        width=width,
+        height=height,
         fps=fps,
-        duration=float(video_stream.get("duration", 0)),
+        duration=duration,
     )
-
 
 def extract_frame(path: Path | str, timestamp_sec: float) -> np.ndarray:
     """Extract a single frame at *timestamp_sec* seconds into the video.
@@ -85,38 +66,25 @@ def extract_frame(path: Path | str, timestamp_sec: float) -> np.ndarray:
     FileNotFoundError
         If *path* does not exist.
     RuntimeError
-        If ffmpeg fails to decode the frame.
+        If cv2 fails to decode the frame.
     """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(path)
 
-    info = probe(path)
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open video: {path}")
 
-    result = subprocess.run(
-        [
-            "ffmpeg",
-            "-ss", str(timestamp_sec),
-            "-i", str(path),
-            "-frames:v", "1",
-            "-f", "rawvideo",
-            "-pix_fmt", "bgr24",
-            "-v", "error",
-            "pipe:1",
-        ],
-        capture_output=True,
-        check=True,
-    )
+    # Seek to the requested timestamp (in milliseconds)
+    cap.set(cv2.CAP_PROP_POS_MSEC, timestamp_sec * 1000.0)
+    ret, frame = cap.read()
+    cap.release()
 
-    expected_bytes = info.width * info.height * 3
-    if len(result.stdout) != expected_bytes:
-        raise RuntimeError(
-            f"Expected {expected_bytes} bytes, got {len(result.stdout)} "
-            f"(timestamp={timestamp_sec}s)"
-        )
+    if not ret or frame is None:
+        raise RuntimeError(f"Failed to extract frame at timestamp={timestamp_sec}s")
 
-    frame = np.frombuffer(result.stdout, dtype=np.uint8)
-    return frame.reshape((info.height, info.width, 3))
+    return frame
 
 
 def sample_frames(
@@ -139,10 +107,26 @@ def sample_frames(
         Where to stop (defaults to video duration).
     """
     path = Path(path)
-    info = probe(path)
-    end = end_sec if end_sec is not None else info.duration
+    if not path.exists():
+        raise FileNotFoundError(path)
 
-    ts = start_sec
-    while ts < end:
-        yield ts, extract_frame(path, ts)
-        ts += interval_sec
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open video: {path}")
+
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        duration = frame_count / fps if fps > 0 else 0.0
+        end = end_sec if end_sec is not None else duration
+
+        ts = start_sec
+        while ts < end:
+            cap.set(cv2.CAP_PROP_POS_MSEC, ts * 1000.0)
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                break
+            yield ts, frame
+            ts += interval_sec
+    finally:
+        cap.release()
