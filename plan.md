@@ -1,13 +1,14 @@
-# WR Analyzer Prototype - Architecture Plan
+# WR Analyzer Prototype — Architecture Plan
 
 ## Package Structure
 
 ```
 wr-analyzer/
-├── pyproject.toml              # uv project config, dependencies
+├── pyproject.toml
 ├── src/
 │   └── wr_analyzer/
-│       ├── __init__.py         # version, top-level imports
+│       ├── __init__.py
+│       ├── __main__.py         # CLI entry point
 │       ├── models.py           # dataclasses matching schema.json
 │       ├── video.py            # video loading, frame sampling
 │       ├── ocr.py              # tesseract wrapper, region cropping
@@ -18,60 +19,85 @@ wr-analyzer/
 │       ├── game_state.py       # game start/end boundary detection
 │       └── analyze.py          # orchestrator: ties modules together
 ├── tests/
-│   ├── conftest.py             # shared fixtures (sample frames, etc.)
+│   ├── conftest.py
 │   ├── test_video.py
 │   ├── test_ocr.py
+│   ├── test_regions.py
+│   ├── test_models.py
 │   ├── test_timer.py
 │   ├── test_kda.py
-│   └── test_game_state.py
-├── videos/                     # LFS-tracked sample videos (already exists)
-├── docs/                       # existing docs
+│   ├── test_game_state.py
+│   ├── test_champions.py
+│   └── test_analyze.py
+├── videos/                     # LFS-tracked sample videos
+├── docs/                       # vision, glossary, schema
 ├── CLAUDE.md
 └── README.md
 ```
 
 ## Module Responsibilities
 
-### `models.py`
-Dataclasses that mirror the schema: `GameAnalysis`, `GameResult`, `Champion`, `TimelineEvent`. Plain dataclasses with `asdict()` for JSON export.
+### `video.py` ✅
+- `probe(path)` → `VideoInfo` (width, height, fps, duration)
+- `extract_frame(path, timestamp_sec)` → BGR numpy array
+- `sample_frames(path, interval_sec)` → iterator of `(timestamp, frame)` tuples
 
-### `video.py`
-- `FrameExtractor` class: opens video with OpenCV, provides:
-  - `sample_frames(interval_sec)` → yields `(timestamp_sec, frame)` tuples
-  - `get_frame(timestamp_sec)` → single frame at a timestamp
-  - `fps`, `duration`, `resolution` properties
-- Handles video lifecycle (open/close)
+### `ocr.py` ✅
+- `preprocess(image, scale)` → adaptive-threshold binary image
+- `preprocess_otsu(image, scale)` → OTSU-threshold binary image (better for light-on-dark HUD text)
+- `ocr_image(image, psm, whitelist)` → recognized text
+- `ocr_region(frame, region)` → crop + preprocess + OCR in one call
 
-### `ocr.py`
-- `ocr_region(frame, region) → str`: crops a frame to a Region, preprocesses (grayscale, threshold), runs Tesseract
-- Preprocessing helpers: contrast boost, binarization — whatever helps Tesseract on the game UI
+### `regions.py` ✅
+- `Region` dataclass with ratio-based coordinates (0.0–1.0)
+- Predefined regions calibrated against 854×394 sample: `SCOREBOARD`, `GAME_TIMER`, `KILLS`, `PLAYER_KDA`, `MINIMAP`, `PLAYER_PORTRAIT`, `ABILITIES`, `GOLD`, `EVENT_FEED`
 
-### `regions.py`
-- Named `Region` dataclass: `(x, y, width, height)` as ratios (0.0–1.0) of frame size, so resolution-independent
-- Predefined regions: `GAME_TIMER`, `BLUE_KDA`, `RED_KDA`, `BLUE_CHAMPIONS`, `RED_CHAMPIONS`, `MINIMAP`
-- These will need tuning against real frames — start with best guesses from default layout
+### `timer.py` ✅
+- `detect_game_time(frame)` → `"MM:SS"` or `None`
+- `parse_game_time(text)` → seconds or `None`
+- Tries focused timer region, falls back to broader scoreboard region
 
-### `timer.py`
-- `detect_game_time(frame) → Optional[str]`: extracts the game clock text (e.g., "12:34") from the timer region
-- `parse_game_time(text) → Optional[int]`: parses to seconds
+### `kda.py` ✅
+- `detect_team_kills(frame)` → `TeamKills(blue, red)` or `None`
+- `detect_player_kda(frame)` → `PlayerKDA(kills, deaths, assists)` or `None`
+- Regex extraction tolerant of OCR noise (V/v, S/5/8, colon/period/slash separators)
 
-### `kda.py`
-- `detect_kda(frame) → dict`: extracts team kill scores from the HUD
+### `game_state.py` ✅
+- `detect_game_phase(frame)` → `"loading"` | `"in_game"` | `"post_game"` | `"unknown"`
+- Primary signal: timer OCR. Fallback: HUD brightness heuristic (kills region pixel analysis)
 
-### `champions.py`
-- `detect_champions(frame) → list[str]`: OCR champion names from scoreboard/loading screen
-- Uses fuzzy matching against the known champion list from glossary.md
+### `champions.py` ✅
+- `fuzzy_match_champion(text)` → champion name or `None`
+- `detect_champions(frame, region)` → list of matched names
+- Uses rapidfuzz against ~180 champion names from glossary.md
 
-### `game_state.py`
-- `detect_game_phase(frame) → str`: returns "loading", "in_game", "post_game", or "unknown"
-- Uses heuristics: presence of game timer, loading screen patterns, end screen detection
+### `analyze.py` ✅
+- `analyze_video(path, interval_sec)` → `AnalysisResult`
+- Samples frames, classifies phases, segments consecutive in-game frames into games
+- Extracts timer, kill scores, and KDA per game
 
-### `analyze.py`
-- `analyze_video(path) → GameAnalysis`: main entry point
-  - Samples frames across the video
-  - Detects game boundaries
-  - Within each game, extracts timer/KDA/champions
-  - Returns structured result
+### `models.py` ✅
+- `StreamAnalysis`, `Game`, `Champion`, `TimelineEvent`, `Runes`
+- `StreamAnalysis.to_dict()` for JSON export matching schema.json
+
+### `__main__.py` ✅
+- CLI: `wr-analyzer <video> [--interval N] [--start N] [--end N] [--json]`
+
+## Known Limitations
+
+- OCR hits ~20–30% of frames at 854×394. Timer is the most reliable; kill scores sometimes misread digits.
+- Regions are calibrated for one sample video. Different recording setups or resolutions may need tuning.
+- The analyzer detects one game correctly in the sample video but has not been tested with multi-game VODs.
+
+## Next Steps
+
+High-value work not yet started:
+
+1. **Post-game scoreboard parsing** — the victory/defeat screen contains all 10 players' names, champions, KDA, and gold in a structured layout. Easiest source of accurate game data.
+2. **Win/loss detection** — detect "VICTORY"/"DEFEAT" text from the end-of-game banner.
+3. **Champion identification from loading screen** — the loading screen shows all 10 champion splash arts and names.
+4. **Timeline event extraction** — parse the kill feed (EVENT_FEED region) for individual kill/death events.
+5. **OCR accuracy improvements** — higher resolution video, better preprocessing, or a lightweight ML model for digit recognition.
 
 ## Dependencies
 
@@ -80,24 +106,6 @@ Dataclasses that mirror the schema: `GameAnalysis`, `GameResult`, `Champion`, `T
 - `Pillow` — image format conversions
 - `rapidfuzz` — fuzzy string matching for champion names
 
-System deps: `tesseract-ocr`
+System deps: `tesseract-ocr`, `ffmpeg`
 
 Dev deps: `pytest`, `pytest-cov`
-
-## Testing Strategy
-
-- Unit tests per module using saved frame crops as fixtures
-- `conftest.py` provides a helper to extract and cache specific frames from the sample video
-- Tests can be run without the full video by using small cropped PNGs checked into `tests/fixtures/`
-
-## Implementation Order
-
-1. `models.py` + `regions.py` — data structures, no deps
-2. `video.py` — frame extraction from sample video
-3. `ocr.py` — get Tesseract working on cropped regions
-4. `timer.py` — first concrete detector, validate against real frames
-5. `game_state.py` — game boundary detection
-6. `kda.py` — score extraction
-7. `champions.py` — champion identification with fuzzy matching
-8. `analyze.py` — wire it all together
-9. Tests + docs updates throughout

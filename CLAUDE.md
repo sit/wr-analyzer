@@ -2,17 +2,32 @@
 
 ## Setup
 
-This repo uses Git LFS to store video files (*.mp4). Git LFS is not installed by default and must be installed first:
-
 ```sh
-apt-get update && apt-get install -y git-lfs
-git lfs install
-git lfs pull
+apt-get update && apt-get install -y git-lfs tesseract-ocr ffmpeg
+git lfs install && git lfs pull
+uv sync
 ```
 
-The `.lfsconfig` in the repo root points LFS directly at GitHub, so no additional URL configuration is needed.
+## Commands
 
-## Project structure
+```sh
+uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse sample video
+uv run pytest                                  # 72 tests
+```
 
-- `docs/` - project documentation, glossary, and schema
-- `videos/` - sample Wild Rift gameplay videos (stored via Git LFS)
+## Module map
+
+`src/wr_analyzer/`:
+
+| Module | Role |
+|---|---|
+| `video.py` | Frame extraction via ffmpeg |
+| `ocr.py` | Tesseract OCR with adaptive and OTSU preprocessing |
+| `regions.py` | HUD region definitions (ratio-based, calibrated to 854×394) |
+| `timer.py` | Game clock MM:SS detection |
+| `kda.py` | Team kill scores and player KDA |
+| `game_state.py` | Phase detection: loading / in_game / post_game |
+| `champions.py` | Fuzzy match OCR text to glossary champion names |
+| `analyze.py` | Orchestrator: sample frames → segment games → extract data |
+| `models.py` | Dataclasses matching `docs/schema.json` |
+| `__main__.py` | CLI entry point |
