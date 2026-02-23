@@ -2,7 +2,6 @@
 
 import cv2
 import numpy as np
-import pytest
 
 from wr_analyzer.ocr import ocr_image, ocr_region, preprocess
 from wr_analyzer.regions import Region

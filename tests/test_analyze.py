@@ -1,17 +1,13 @@
 """Tests for wr_analyzer.analyze."""
 
-import numpy as np
-import pytest
-
+from support import load_frame
 from wr_analyzer.analyze import (
     AnalysisResult,
     FrameData,
-    GameSegment,
     _segment_games,
     analyze_frame,
     analyze_video,
 )
-from wr_analyzer.video import extract_frame
 
 
 class TestSegmentGames:
@@ -46,9 +42,8 @@ class TestSegmentGames:
 
 
 class TestAnalyzeFrame:
-    def test_returns_frame_data(self, sample_video_path):
-        frame = extract_frame(sample_video_path, 700)
-        fd = analyze_frame(frame, 700.0)
+    def test_returns_frame_data(self):
+        fd = analyze_frame(load_frame(700), 700.0)
         assert isinstance(fd, FrameData)
         assert fd.timestamp_sec == 700.0
         assert fd.phase in {"loading", "in_game", "post_game", "unknown"}
@@ -56,7 +51,7 @@ class TestAnalyzeFrame:
 
 class TestAnalyzeVideo:
     def test_basic_analysis(self, sample_video_path):
-        """Run analysis on a short slice and verify structure."""
+        """Integration test: run analysis on a short slice and verify structure."""
         result = analyze_video(
             sample_video_path,
             interval_sec=30.0,

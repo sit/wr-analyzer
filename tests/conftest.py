@@ -12,6 +12,6 @@ SAMPLE_VIDEO = VIDEOS_DIR / "JjoDryfoCGs.mp4"
 @pytest.fixture
 def sample_video_path() -> Path:
     """Return path to the sample video, skipping if not available."""
-    if not SAMPLE_VIDEO.exists():
+    if not SAMPLE_VIDEO.exists() or SAMPLE_VIDEO.stat().st_size < 1_000_000:
         pytest.skip("Sample video not available (run git lfs pull)")
     return SAMPLE_VIDEO

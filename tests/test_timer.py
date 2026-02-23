@@ -1,10 +1,7 @@
 """Tests for wr_analyzer.timer."""
 
-import numpy as np
-import pytest
-
+from support import load_frame
 from wr_analyzer.timer import detect_game_time, parse_game_time
-from wr_analyzer.video import extract_frame
 
 
 class TestParseGameTime:
@@ -42,19 +39,15 @@ class TestParseGameTime:
 
 
 class TestDetectGameTime:
-    def test_in_game_frame(self, sample_video_path):
+    def test_in_game_frame(self):
         """At least some in-game frames should yield a timer reading."""
-        # Sample several frames during gameplay
         readings = []
         for ts in [700, 900, 1500, 1800, 2000]:
-            frame = extract_frame(sample_video_path, ts)
-            result = detect_game_time(frame)
+            result = detect_game_time(load_frame(ts))
             if result is not None:
                 readings.append(result)
-        # We expect at least one successful read from 5 in-game frames
         assert len(readings) >= 1
 
-    def test_non_game_frame_returns_none(self, sample_video_path):
+    def test_non_game_frame_returns_none(self):
         """Champ-select / loading frames should not return a timer."""
-        frame = extract_frame(sample_video_path, 300)  # champ select
-        assert detect_game_time(frame) is None
+        assert detect_game_time(load_frame(300)) is None

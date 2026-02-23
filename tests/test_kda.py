@@ -1,10 +1,6 @@
 """Tests for wr_analyzer.kda."""
 
-import re
-
-import numpy as np
-import pytest
-
+from support import load_frame
 from wr_analyzer.kda import (
     PlayerKDA,
     TeamKills,
@@ -13,7 +9,6 @@ from wr_analyzer.kda import (
     detect_player_kda,
     detect_team_kills,
 )
-from wr_analyzer.video import extract_frame
 
 
 class TestKillsRegex:
@@ -56,12 +51,11 @@ class TestKdaRegex:
 
 
 class TestDetectTeamKills:
-    def test_in_game_frame(self, sample_video_path):
+    def test_in_game_frame(self):
         """At least some in-game frames should yield kill scores."""
         readings = []
         for ts in [700, 1200, 1500, 1800, 2000]:
-            frame = extract_frame(sample_video_path, ts)
-            result = detect_team_kills(frame)
+            result = detect_team_kills(load_frame(ts))
             if result is not None:
                 readings.append(result)
                 assert isinstance(result, TeamKills)
@@ -71,15 +65,14 @@ class TestDetectTeamKills:
 
 
 class TestDetectPlayerKda:
-    def test_in_game_frame(self, sample_video_path):
+    def test_in_game_frame(self):
         """Player KDA may be detected from in-game frames.
 
         At 854x394 the KDA text is very small and OCR is unreliable,
         so we only verify that any detected results are well-formed.
         """
         for ts in [700, 1200, 1500, 1800, 2000]:
-            frame = extract_frame(sample_video_path, ts)
-            result = detect_player_kda(frame)
+            result = detect_player_kda(load_frame(ts))
             if result is not None:
                 assert isinstance(result, PlayerKDA)
                 assert result.kills >= 0
