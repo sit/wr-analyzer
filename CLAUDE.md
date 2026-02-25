@@ -17,6 +17,9 @@ uv run pytest                                  # 77 tests
 uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video
 ```
 
+All work using Python must be done via `uv` commands. You may not run `python3` or `python`
+on its own.
+
 ## Module map
 
 `src/wr_analyzer/`:
@@ -26,7 +29,7 @@ uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from
 | `download.py` | YouTube download via yt-dlp (URL parsing, caching) |
 | `video.py` | Frame extraction via ffmpeg |
 | `ocr.py` | Tesseract OCR with adaptive and OTSU preprocessing |
-| `regions.py` | HUD region definitions (ratio-based, calibrated to 854×394) |
+| `regions.py` | HUD region definitions (corner-anchored pixel offsets, scaled by width) |
 | `timer.py` | Game clock MM:SS detection |
 | `kda.py` | Team kill scores and player KDA |
 | `game_state.py` | Phase detection: loading / in_game / post_game |
@@ -35,3 +38,4 @@ uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from
 | `analyze.py` | Orchestrator: sample frames → segment games → extract data |
 | `models.py` | Dataclasses matching `docs/schema.json` |
 | `__main__.py` | CLI entry point |
+| `layout.py` | HUD layout validation (detects custom HUD layouts) |

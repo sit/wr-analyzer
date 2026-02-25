@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from wr_analyzer.ocr import ocr_image, ocr_region, preprocess
-from wr_analyzer.regions import Region
+from wr_analyzer.regions import Anchor, Region
 
 
 def _make_text_image(text: str, width: int = 200, height: int = 60) -> np.ndarray:
@@ -52,12 +52,12 @@ class TestOcrImage:
 class TestOcrRegion:
     def test_end_to_end(self):
         # Create a small image with known text and OCR the whole thing
-        # via ocr_region with a full-frame region.
+        # via ocr_region with a full-frame region.  Use an 854-wide frame
+        # so the region's reference pixels map 1:1.
         img = _make_text_image("42", width=200, height=60)
-        # Embed into a slightly larger frame so the region crop is meaningful.
-        frame = np.zeros((120, 400, 3), dtype=np.uint8)
+        frame = np.zeros((394, 854, 3), dtype=np.uint8)
         frame[30:90, 100:300] = img
-        region = Region(x=0.25, y=0.25, w=0.50, h=0.50)
+        region = Region(anchor=Anchor.TOP_LEFT, x=100, y=30, w=200, h=60)
         text = ocr_region(frame, region, whitelist="0123456789")
         digits = "".join(c for c in text if c.isdigit())
         assert "4" in digits or "2" in digits

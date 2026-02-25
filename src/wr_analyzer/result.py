@@ -11,15 +11,16 @@ import re
 import numpy as np
 
 from wr_analyzer.ocr import ocr_image, preprocess_otsu
-from wr_analyzer.regions import Region
+from wr_analyzer.regions import Anchor, Region
 
 # Two regions to check — the VICTORY/DEFEAT text appears in different
 # positions on the animated banner vs. the post-game scoreboard.
 #
 # Banner region: the large centred banner shown right after game end.
-_RESULT_BANNER = Region(x=0.25, y=0.05, w=0.50, h=0.35)
+# Centred horizontally, 19px from top at 854×394 reference.
+_RESULT_BANNER = Region(anchor=Anchor.TOP_CENTER, x=0, y=19, w=427, h=137)
 # Scoreboard header: smaller text at the very top of the stats screen.
-_RESULT_SCOREBOARD = Region(x=0.30, y=0.0, w=0.40, h=0.12)
+_RESULT_SCOREBOARD = Region(anchor=Anchor.TOP_CENTER, x=0, y=0, w=341, h=47)
 
 # Patterns tolerant of common OCR misreads.
 # "VICTORY" often appears as "Victory", "VICTARY", "VICTQRY", etc.
