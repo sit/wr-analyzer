@@ -1,12 +1,18 @@
-"""CLI entry point: ``python -m wr_analyzer <video>``."""
+"""CLI entry point: ``python -m wr_analyzer <video>``.
+
+The *video* argument may be a local file path **or** a YouTube URL / video ID.
+When a URL is given the video is downloaded (and cached) before analysis.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from wr_analyzer.analyze import analyze_video
+from wr_analyzer.download import download_video, extract_video_id
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -14,7 +20,10 @@ def main(argv: list[str] | None = None) -> None:
         prog="wr-analyzer",
         description="Analyse a Wild Rift gameplay video.",
     )
-    parser.add_argument("video", help="Path to the video file")
+    parser.add_argument(
+        "video",
+        help="Path to a local video file, YouTube URL, or YouTube video ID",
+    )
     parser.add_argument(
         "--interval",
         type=float,
@@ -39,13 +48,37 @@ def main(argv: list[str] | None = None) -> None:
         dest="output_json",
         help="Output raw JSON instead of the human-readable report",
     )
+    parser.add_argument(
+        "--cache-dir",
+        default="videos/cache",
+        help="Directory for downloaded videos (default: videos/cache)",
+    )
+    parser.add_argument(
+        "--resolution",
+        type=int,
+        default=480,
+        help="Download resolution in pixels (default: 480)",
+    )
 
     args = parser.parse_args(argv)
 
-    print(f"Analysing {args.video} (sampling every {args.interval}s) ...", file=sys.stderr)
+    # Resolve video source: local path or YouTube download.
+    video_path = Path(args.video)
+    if not video_path.exists():
+        video_id = extract_video_id(args.video)
+        if video_id is None:
+            parser.error(f"File not found and not a YouTube URL: {args.video}")
+        video_path = download_video(
+            video_id,
+            Path(args.cache_dir),
+            resolution=args.resolution,
+            on_progress=lambda msg: print(msg, file=sys.stderr),
+        )
+
+    print(f"Analysing {video_path} (sampling every {args.interval}s) ...", file=sys.stderr)
 
     result = analyze_video(
-        args.video,
+        video_path,
         interval_sec=args.interval,
         start_sec=args.start,
         end_sec=args.end,

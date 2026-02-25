@@ -11,7 +11,8 @@ uv sync
 ## Commands
 
 ```sh
-uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse sample video
+uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse local video
+uv run wr-analyzer https://youtu.be/JjoDryfoCGs  # analyse YouTube video
 uv run pytest                                  # 77 tests
 uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video
 ```
@@ -22,6 +23,7 @@ uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from
 
 | Module | Role |
 |---|---|
+| `download.py` | YouTube download via yt-dlp (URL parsing, caching) |
 | `video.py` | Frame extraction via ffmpeg |
 | `ocr.py` | Tesseract OCR with adaptive and OTSU preprocessing |
 | `regions.py` | HUD region definitions (ratio-based, calibrated to 854×394) |
