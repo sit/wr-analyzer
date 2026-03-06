@@ -56,8 +56,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--resolution",
         type=int,
-        default=480,
-        help="Download resolution in pixels (default: 480)",
+        default=720,
+        help="Download resolution in pixels (default: 720)",
     )
 
     args = parser.parse_args(argv)
@@ -77,12 +77,17 @@ def main(argv: list[str] | None = None) -> None:
 
     print(f"Analysing {video_path} (sampling every {args.interval}s) ...", file=sys.stderr)
 
+    def _progress(idx: int, total: int, elapsed: float) -> None:
+        print(f"\r  frame {idx}/{total} ({elapsed:.1f}s)", end="", file=sys.stderr, flush=True)
+
     result = analyze_video(
         video_path,
         interval_sec=args.interval,
         start_sec=args.start,
         end_sec=args.end,
+        on_progress=_progress,
     )
+    print(file=sys.stderr)  # newline after progress
 
     if args.output_json:
         print(json.dumps(result.summary(), indent=2))

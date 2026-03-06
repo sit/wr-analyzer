@@ -85,7 +85,7 @@ def download_video(
     *,
     start_time: float | None = None,
     end_time: float | None = None,
-    resolution: int = 480,
+    resolution: int = 720,
     on_progress: Callable[[str], None] | None = None,
 ) -> Path:
     """Download a YouTube video and return the local file path.
@@ -120,8 +120,9 @@ def download_video(
     ydl_opts: dict = {
         "quiet": True,
         "no_warnings": True,
-        # H.264 video-only at target resolution — no audio needed for analysis.
-        "format": f"bestvideo[height<={resolution}][vcodec^=avc1]",
+        # H.264 video-only at target resolution, ≤30fps — no audio needed
+        # for analysis and high frame rates waste bandwidth/disk.
+        "format": f"bestvideo[height<={resolution}][fps<=30][vcodec^=avc1]",
         "outtmpl": str(output_path),
         "no_playlist": True,
     }
