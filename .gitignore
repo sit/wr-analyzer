@@ -1,3 +1,4 @@
+.DS_Store
 __pycache__/
 *.pyc
 .venv/
@@ -6,3 +7,4 @@ dist/
 build/
 .pytest_cache/
 .coverage
+_cache/

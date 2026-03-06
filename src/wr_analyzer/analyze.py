@@ -6,7 +6,8 @@ timer / kill-score / KDA data for each detected game.
 
 from __future__ import annotations
 
-from collections import Counter
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -14,7 +15,14 @@ from pathlib import Path
 import numpy as np
 
 from wr_analyzer.game_state import detect_game_phase
-from wr_analyzer.kda import PlayerKDA, TeamKills, detect_player_kda, detect_team_kills
+from wr_analyzer.ocr import _get_easyocr_reader
+from wr_analyzer.kda import (
+    MAX_TEAM_KILLS,
+    PlayerKDA,
+    TeamKills,
+    detect_player_kda,
+    detect_team_kills,
+)
 from wr_analyzer.result import detect_result
 from wr_analyzer.timer import detect_game_time
 from wr_analyzer.video import extract_frame, probe
@@ -121,6 +129,53 @@ class AnalysisResult:
         }
 
 
+def _sanitize_kills(frames: list[FrameData]) -> list[FrameData]:
+    """Filter out team-kill readings that violate monotonicity.
+
+    Kill totals can only increase during a game.  Readings where either
+    team's count decreases compared to the previous valid reading are
+    OCR errors and are replaced with ``None`` (frame is kept, kill data
+    is cleared).
+    """
+    last_blue = -1
+    last_red = -1
+    out: list[FrameData] = []
+    for f in frames:
+        if f.team_kills is None:
+            out.append(f)
+            continue
+        b, r = f.team_kills.blue, f.team_kills.red
+        if b > MAX_TEAM_KILLS or r > MAX_TEAM_KILLS:
+            # Implausible value — clear kill data
+            out.append(
+                FrameData(
+                    timestamp_sec=f.timestamp_sec,
+                    phase=f.phase,
+                    game_time=f.game_time,
+                    team_kills=None,
+                    player_kda=f.player_kda,
+                    result=f.result,
+                )
+            )
+            continue
+        if b >= last_blue and r >= last_red:
+            last_blue, last_red = b, r
+            out.append(f)
+        else:
+            # Drop the kill reading but keep the frame
+            out.append(
+                FrameData(
+                    timestamp_sec=f.timestamp_sec,
+                    phase=f.phase,
+                    game_time=f.game_time,
+                    team_kills=None,
+                    player_kda=f.player_kda,
+                    result=f.result,
+                )
+            )
+    return out
+
+
 def _segment_games(
     frames: list[FrameData],
     min_gap_sec: float = 30.0,
@@ -141,7 +196,9 @@ def _segment_games(
         return []
 
     segments: list[GameSegment] = []
-    current = GameSegment(start_sec=in_game[0].timestamp_sec, end_sec=in_game[0].timestamp_sec)
+    current = GameSegment(
+        start_sec=in_game[0].timestamp_sec, end_sec=in_game[0].timestamp_sec
+    )
     current.frames.append(in_game[0])
 
     for f in in_game[1:]:
@@ -159,7 +216,10 @@ def _segment_games(
     post_game = [f for f in frames if f.phase == "post_game"]
     for seg in kept:
         for f in post_game:
-            if f.timestamp_sec > seg.end_sec and f.timestamp_sec <= seg.end_sec + min_gap_sec:
+            if (
+                f.timestamp_sec > seg.end_sec
+                and f.timestamp_sec <= seg.end_sec + min_gap_sec
+            ):
                 seg.post_game_frames.append(f)
 
     return kept
@@ -196,6 +256,7 @@ def analyze_video(
     interval_sec: float = 10.0,
     start_sec: float = 0.0,
     end_sec: float | None = None,
+    on_progress: Callable[[int, int, float], None] | None = None,
 ) -> AnalysisResult:
     """Analyse a Wild Rift gameplay video.
 
@@ -217,13 +278,27 @@ def analyze_video(
     info = probe(path)
     stop = end_sec if end_sec is not None else info.duration
 
+    # Eagerly load EasyOCR model so first-frame timing is representative.
+    _get_easyocr_reader()
+
+    total = int((stop - start_sec) / interval_sec) + 1
+
     all_frames: list[FrameData] = []
     ts = start_sec
+    idx = 0
     while ts < stop:
+        t0 = time.monotonic()
         frame = extract_frame(path, ts)
         fd = analyze_frame(frame, ts)
+        elapsed = time.monotonic() - t0
         all_frames.append(fd)
+        idx += 1
+        if on_progress is not None:
+            on_progress(idx, total, elapsed)
         ts += interval_sec
+
+    # Filter out implausible kill readings before segmenting.
+    all_frames = _sanitize_kills(all_frames)
 
     # Scale gap threshold: OCR misses many frames at low resolution, so
     # allow gaps up to 5x the sampling interval before splitting segments.

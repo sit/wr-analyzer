@@ -4,10 +4,11 @@ from support import load_frame
 from wr_analyzer.analyze import (
     AnalysisResult,
     FrameData,
-    GameSegment,
     _segment_games,
+    _sanitize_kills,
     analyze_frame,
 )
+from wr_analyzer.kda import TeamKills
 
 
 class TestSegmentGames:
@@ -57,6 +58,66 @@ class TestSegmentGames:
         assert len(segments) == 1
         assert len(segments[0].post_game_frames) == 0
         assert segments[0].result is None
+
+
+class TestSanitizeKills:
+    """Test monotonicity filtering of team kill readings."""
+
+    def _make_frame(self, ts: float, blue: int, red: int) -> FrameData:
+        return FrameData(
+            timestamp_sec=ts,
+            phase="in_game",
+            team_kills=TeamKills(blue=blue, red=red),
+        )
+
+    def test_monotonic_series_unchanged(self):
+        """A clean monotonic series should pass through unchanged."""
+        frames = [
+            self._make_frame(10, 0, 0),
+            self._make_frame(20, 1, 1),
+            self._make_frame(30, 3, 2),
+        ]
+        result = _sanitize_kills(frames)
+        assert len(result) == 3
+
+    def test_drops_decreasing_values(self):
+        """Kill counts that decrease vs previous reading are OCR errors."""
+        frames = [
+            self._make_frame(10, 1, 1),
+            self._make_frame(20, 3, 2),
+            self._make_frame(30, 2, 5),  # blue decreased: OCR error
+            self._make_frame(40, 4, 6),
+        ]
+        result = _sanitize_kills(frames)
+        # Frame is kept but kills cleared to None
+        assert len(result) == 4
+        assert result[0].team_kills == TeamKills(1, 1)
+        assert result[1].team_kills == TeamKills(3, 2)
+        assert result[2].team_kills is None  # cleared
+        assert result[3].team_kills == TeamKills(4, 6)
+
+    def test_drops_spike_values(self):
+        """A sudden spike followed by return to normal is OCR noise."""
+        frames = [
+            self._make_frame(10, 5, 3),
+            self._make_frame(20, 5, 111),  # spike: OCR error
+            self._make_frame(30, 6, 4),
+        ]
+        result = _sanitize_kills(frames)
+        # The spike at t=20 should be removed (it would force t=30 to
+        # be removed too if kept, since 4 < 111)
+        kills = [f.team_kills for f in result]
+        assert TeamKills(5, 111) not in kills
+
+    def test_none_kills_preserved(self):
+        """Frames without kill readings should pass through."""
+        frames = [
+            FrameData(timestamp_sec=10, phase="in_game"),
+            self._make_frame(20, 1, 1),
+        ]
+        result = _sanitize_kills(frames)
+        assert len(result) == 2
+        assert result[0].team_kills is None
 
 
 class TestAnalyzeFrame:

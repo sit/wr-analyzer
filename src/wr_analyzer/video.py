@@ -12,6 +12,7 @@ from typing import Iterator
 import cv2
 import numpy as np
 
+
 @dataclass(frozen=True)
 class VideoInfo:
     """Basic metadata about a video file."""
@@ -55,6 +56,7 @@ def probe(path: Path | str) -> VideoInfo:
         fps=fps,
         duration=duration,
     )
+
 
 def extract_frame(path: Path | str, timestamp_sec: float) -> np.ndarray:
     """Extract a single frame at *timestamp_sec* seconds into the video.

@@ -27,4 +27,6 @@ def sample_analysis_result() -> AnalysisResult:
     """
     if not SAMPLE_VIDEO.exists() or SAMPLE_VIDEO.stat().st_size < 1_000_000:
         pytest.skip("Sample video not available (run git lfs pull)")
-    return analyze_video(SAMPLE_VIDEO, interval_sec=30.0, start_sec=600.0, end_sec=720.0)
+    return analyze_video(
+        SAMPLE_VIDEO, interval_sec=30.0, start_sec=600.0, end_sec=720.0
+    )

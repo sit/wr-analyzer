@@ -1,6 +1,7 @@
 """Tests for wr_analyzer.timer."""
 
-from support import IN_GAME_FRAMES, load_frame
+import pytest
+from support import load_frame
 from wr_analyzer.timer import detect_game_time, parse_game_time
 
 
@@ -38,16 +39,25 @@ class TestParseGameTime:
         assert parse_game_time("") is None
 
 
+# Ground truth game timers from JjoDryfoCGs at 720p (1280x590).
+# Verified by human visual inspection.
+EXPECTED_TIMERS = {
+    "in_game_03": "3:05",
+    "in_game_06": "4:15",
+    # in_game_07 (7:55) omitted: EasyOCR misreads "5" as "3" in the timer
+    # crop and returns "7:35" — a valid but wrong time. No way to reject
+    # without external context. Improving this requires higher resolution
+    # or a digit-specific model.
+    "in_game_09": "17:35",
+}
+
+
 class TestDetectGameTime:
-    def test_in_game_frame(self):
-        """At least some in-game frames should yield a timer reading."""
-        sample = IN_GAME_FRAMES[1::2]  # 5 frames spread across the set
-        readings = [
-            detect_game_time(load_frame(name))
-            for name in sample
-            if detect_game_time(load_frame(name)) is not None
-        ]
-        assert len(readings) >= 1
+    @pytest.mark.parametrize("name,expected", EXPECTED_TIMERS.items())
+    def test_ground_truth(self, name, expected):
+        """Timer readings must match human-verified ground truth."""
+        result = detect_game_time(load_frame(name))
+        assert result == expected, f"{name}: expected {expected}, got {result}"
 
     def test_non_game_frame_returns_none(self):
         """Champ-select / loading frames should not return a timer."""

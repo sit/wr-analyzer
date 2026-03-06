@@ -50,14 +50,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--cache-dir",
-        default="videos/cache",
-        help="Directory for downloaded videos (default: videos/cache)",
+        default="_cache",
+        help="Directory for downloaded videos (default: _cache)",
     )
     parser.add_argument(
         "--resolution",
         type=int,
-        default=480,
-        help="Download resolution in pixels (default: 480)",
+        default=720,
+        help="Download resolution in pixels (default: 720)",
     )
 
     args = parser.parse_args(argv)
@@ -75,14 +75,26 @@ def main(argv: list[str] | None = None) -> None:
             on_progress=lambda msg: print(msg, file=sys.stderr),
         )
 
-    print(f"Analysing {video_path} (sampling every {args.interval}s) ...", file=sys.stderr)
+    print(
+        f"Analysing {video_path} (sampling every {args.interval}s) ...", file=sys.stderr
+    )
+
+    def _progress(idx: int, total: int, elapsed: float) -> None:
+        print(
+            f"\r  frame {idx}/{total} ({elapsed:.1f}s)",
+            end="",
+            file=sys.stderr,
+            flush=True,
+        )
 
     result = analyze_video(
         video_path,
         interval_sec=args.interval,
         start_sec=args.start,
         end_sec=args.end,
+        on_progress=_progress,
     )
+    print(file=sys.stderr)  # newline after progress
 
     if args.output_json:
         print(json.dumps(result.summary(), indent=2))
@@ -106,7 +118,9 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     print(f"\nIn-game frames: {len(in_game)}")
-    print(f"Video span:     {in_game[0].timestamp_sec:.0f}s – {in_game[-1].timestamp_sec:.0f}s")
+    print(
+        f"Video span:     {in_game[0].timestamp_sec:.0f}s – {in_game[-1].timestamp_sec:.0f}s"
+    )
 
     # Timer readings
     timer_readings = [(f.timestamp_sec, f.game_time) for f in in_game if f.game_time]
@@ -135,7 +149,9 @@ def main(argv: list[str] | None = None) -> None:
         for i, g in enumerate(result.games, 1):
             dur = (g.end_sec - g.start_sec) / 60
             result_str = g.result.upper() if g.result else "unknown"
-            print(f"\n  Game {i}  [{result_str}]  (video {g.start_sec:.0f}s – {g.end_sec:.0f}s, {dur:.1f} min span)")
+            print(
+                f"\n  Game {i}  [{result_str}]  (video {g.start_sec:.0f}s – {g.end_sec:.0f}s, {dur:.1f} min span)"
+            )
             if g.first_game_time:
                 print(f"    First clock: {g.first_game_time}")
             if g.last_game_time:

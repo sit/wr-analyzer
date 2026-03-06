@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from rapidfuzz import process as fuzz_process
 
-from wr_analyzer.ocr import ocr_image, preprocess_otsu
+from wr_analyzer.ocr import ocr_easyocr, preprocess_clahe
 from wr_analyzer.regions import Region
 
 # Load the champion list once from the glossary.
@@ -62,15 +62,15 @@ def detect_champions(frame: np.ndarray, region: Region) -> list[str]:
     Returns a (possibly empty) list of matched champion names.
     """
     crop = region.crop(frame)
-    processed = preprocess_otsu(crop, scale=4)
-    raw_text = ocr_image(processed, psm=6)
+    enhanced = preprocess_clahe(crop, scale=4)
+    parts = ocr_easyocr(enhanced)
 
     found: list[str] = []
-    for word in raw_text.split("\n"):
-        word = word.strip()
-        if len(word) < 3:
+    for text in parts:
+        text = text.strip()
+        if len(text) < 3:
             continue
-        match = fuzzy_match_champion(word)
+        match = fuzzy_match_champion(text)
         if match and match not in found:
             found.append(match)
     return found

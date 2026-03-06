@@ -136,7 +136,8 @@ GAME_TIMER = Region(anchor=Anchor.TOP_RIGHT, x=180, y=15, w=68, h=23)
 
 # Team kill scores ("# VS #") — top-right, first row.
 # Right margin = 146, top margin = 0.
-KILLS = Region(anchor=Anchor.TOP_RIGHT, x=146, y=0, w=111, h=23)
+# Height limited to 14px to avoid overlapping the GAME_TIMER region below.
+KILLS = Region(anchor=Anchor.TOP_RIGHT, x=146, y=0, w=111, h=14)
 
 # Player KDA ("K/D/A") — top-right, right of kill scores.
 # Right margin = 104, top margin = 0.
