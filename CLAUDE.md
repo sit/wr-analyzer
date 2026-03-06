@@ -3,7 +3,7 @@
 ## Setup
 
 ```sh
-apt-get update && apt-get install -y git-lfs tesseract-ocr ffmpeg
+apt-get update && apt-get install -y git-lfs ffmpeg
 git lfs install && git lfs pull
 uv sync
 ```
@@ -13,7 +13,7 @@ uv sync
 ```sh
 uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse local video
 uv run wr-analyzer https://youtu.be/JjoDryfoCGs  # analyse YouTube video
-uv run pytest                                  # 77 tests
+uv run pytest                                  # 122 tests
 uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video
 ```
 
@@ -28,7 +28,7 @@ on its own.
 |---|---|
 | `download.py` | YouTube download via yt-dlp (URL parsing, caching) |
 | `video.py` | Frame extraction via ffmpeg |
-| `ocr.py` | Tesseract OCR with adaptive and OTSU preprocessing |
+| `ocr.py` | EasyOCR with CLAHE preprocessing for colored HUD text |
 | `regions.py` | HUD region definitions (corner-anchored pixel offsets, scaled by width) |
 | `timer.py` | Game clock MM:SS detection |
 | `kda.py` | Team kill scores and player KDA |
