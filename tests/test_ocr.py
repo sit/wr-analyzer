@@ -3,8 +3,10 @@
 import cv2
 import numpy as np
 
-from wr_analyzer.ocr import ocr_image, ocr_region, preprocess
-from wr_analyzer.regions import Anchor, Region
+from wr_analyzer.ocr import (
+    ocr_easyocr,
+    preprocess_clahe,
+)
 
 
 def _make_text_image(text: str, width: int = 200, height: int = 60) -> np.ndarray:
@@ -22,42 +24,37 @@ def _make_text_image(text: str, width: int = 200, height: int = 60) -> np.ndarra
     return img
 
 
-class TestPreprocess:
-    def test_output_is_single_channel(self):
-        bgr = np.zeros((50, 100, 3), dtype=np.uint8)
-        result = preprocess(bgr)
-        assert result.ndim == 2
+class TestPreprocessClahe:
+    def test_output_is_bgr(self):
+        bgr = np.zeros((20, 100, 3), dtype=np.uint8)
+        result = preprocess_clahe(bgr, scale=2)
+        assert result.ndim == 3
+        assert result.shape[2] == 3
 
     def test_upscale(self):
-        bgr = np.zeros((50, 100, 3), dtype=np.uint8)
-        result = preprocess(bgr, scale=4)
-        assert result.shape == (200, 400)
+        bgr = np.zeros((20, 100, 3), dtype=np.uint8)
+        result = preprocess_clahe(bgr, scale=4)
+        assert result.shape == (80, 400, 3)
 
-class TestOcrImage:
-    def test_reads_digits(self):
-        img = _make_text_image("12345")
-        processed = preprocess(img, scale=3)
-        text = ocr_image(processed, whitelist="0123456789")
-        # Allow some OCR fuzziness but core digits should be present
-        digits = "".join(c for c in text if c.isdigit())
-        assert len(digits) >= 3
-
-    def test_reads_letters(self):
-        img = _make_text_image("HELLO")
-        processed = preprocess(img, scale=3)
-        text = ocr_image(processed, whitelist="ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        assert any(c in text.upper() for c in "HELO")
+    def test_preserves_colored_text(self):
+        """CLAHE should boost contrast of colored text, not flatten it."""
+        img = np.zeros((30, 100, 3), dtype=np.uint8)
+        # Red text on dark background
+        img[10:20, 20:40, 2] = 120  # red channel
+        result = preprocess_clahe(img, scale=1)
+        # The red region should be brighter after CLAHE
+        assert result[10:20, 20:40, 2].mean() >= 120
 
 
-class TestOcrRegion:
-    def test_end_to_end(self):
-        # Create a small image with known text and OCR the whole thing
-        # via ocr_region with a full-frame region.  Use an 854-wide frame
-        # so the region's reference pixels map 1:1.
-        img = _make_text_image("42", width=200, height=60)
-        frame = np.zeros((394, 854, 3), dtype=np.uint8)
-        frame[30:90, 100:300] = img
-        region = Region(anchor=Anchor.TOP_LEFT, x=100, y=30, w=200, h=60)
-        text = ocr_region(frame, region, whitelist="0123456789")
-        digits = "".join(c for c in text if c.isdigit())
-        assert "4" in digits or "2" in digits
+class TestOcrEasyocr:
+    def test_reads_white_text(self):
+        img = _make_text_image("25 VS 29")
+        scaled = cv2.resize(img, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+        texts = ocr_easyocr(scaled)
+        joined = " ".join(texts)
+        assert "25" in joined or "29" in joined
+
+    def test_returns_list(self):
+        img = np.zeros((50, 100, 3), dtype=np.uint8)
+        result = ocr_easyocr(img)
+        assert isinstance(result, list)

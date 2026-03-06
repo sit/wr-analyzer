@@ -10,7 +10,7 @@ import re
 
 import numpy as np
 
-from wr_analyzer.ocr import ocr_image, preprocess_otsu
+from wr_analyzer.ocr import ocr_easyocr, preprocess_clahe
 from wr_analyzer.regions import Anchor, Region
 
 # Two regions to check — the VICTORY/DEFEAT text appears in different
@@ -57,8 +57,9 @@ def detect_result(frame: np.ndarray) -> str | None:
     """
     for region in (_RESULT_BANNER, _RESULT_SCOREBOARD):
         crop = region.crop(frame)
-        processed = preprocess_otsu(crop, scale=5)
-        text = ocr_image(processed, psm=6)
+        enhanced = preprocess_clahe(crop, scale=4)
+        parts = ocr_easyocr(enhanced)
+        text = " ".join(parts)
         result = _match_text(text)
         if result is not None:
             return result

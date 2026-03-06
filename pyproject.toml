@@ -5,10 +5,9 @@ description = "Wild Rift gameplay video analyzer"
 requires-python = ">=3.11"
 dependencies = [
     "opencv-python-headless>=4.9",
-    "pytesseract>=0.3",
-    "Pillow>=10.0",
-    "rapidfuzz>=3.0",
+"rapidfuzz>=3.0",
     "yt-dlp>=2024.0",
+    "easyocr>=1.7.2",
 ]
 
 [project.scripts]
