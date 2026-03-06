@@ -16,21 +16,21 @@ Given a recorded Wild Rift game, the analyzer samples frames and extracts:
 
 ```sh
 # Human-readable report
-uv run wr-analyzer videos/JjoDryfoCGs.mp4
+uv run wr-analyzer tests/fixtures/JjoDryfoCGs.mp4
 
 # JSON output
-uv run wr-analyzer videos/JjoDryfoCGs.mp4 --json
+uv run wr-analyzer tests/fixtures/JjoDryfoCGs.mp4 --json
 
 # Control sampling rate and range
-uv run wr-analyzer videos/JjoDryfoCGs.mp4 --interval 10 --start 400 --end 2150
+uv run wr-analyzer tests/fixtures/JjoDryfoCGs.mp4 --interval 10 --start 400 --end 2150
 ```
 
 ## Setup
 
-Requires system packages `tesseract-ocr` and `ffmpeg`:
+Requires system package `ffmpeg`:
 
 ```sh
-apt-get update && apt-get install -y tesseract-ocr ffmpeg
+apt-get update && apt-get install -y ffmpeg
 ```
 
 The sample video is stored with Git LFS:

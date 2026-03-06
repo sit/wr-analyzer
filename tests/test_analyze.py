@@ -4,7 +4,6 @@ from support import load_frame
 from wr_analyzer.analyze import (
     AnalysisResult,
     FrameData,
-    GameSegment,
     _segment_games,
     _sanitize_kills,
     analyze_frame,
@@ -66,7 +65,8 @@ class TestSanitizeKills:
 
     def _make_frame(self, ts: float, blue: int, red: int) -> FrameData:
         return FrameData(
-            timestamp_sec=ts, phase="in_game",
+            timestamp_sec=ts,
+            phase="in_game",
             team_kills=TeamKills(blue=blue, red=red),
         )
 

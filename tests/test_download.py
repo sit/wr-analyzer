@@ -14,14 +14,21 @@ from wr_analyzer.download import download_video, extract_video_id
 # extract_video_id
 # ---------------------------------------------------------------------------
 
+
 class TestExtractVideoId:
     """Pure logic — no network calls."""
 
     def test_full_url(self):
-        assert extract_video_id("https://www.youtube.com/watch?v=JjoDryfoCGs") == "JjoDryfoCGs"
+        assert (
+            extract_video_id("https://www.youtube.com/watch?v=JjoDryfoCGs")
+            == "JjoDryfoCGs"
+        )
 
     def test_full_url_with_extra_params(self):
-        assert extract_video_id("https://www.youtube.com/watch?v=JjoDryfoCGs&t=120") == "JjoDryfoCGs"
+        assert (
+            extract_video_id("https://www.youtube.com/watch?v=JjoDryfoCGs&t=120")
+            == "JjoDryfoCGs"
+        )
 
     def test_short_url(self):
         assert extract_video_id("https://youtu.be/JjoDryfoCGs") == "JjoDryfoCGs"
@@ -30,7 +37,10 @@ class TestExtractVideoId:
         assert extract_video_id("https://youtu.be/JjoDryfoCGs?t=30") == "JjoDryfoCGs"
 
     def test_mobile_url(self):
-        assert extract_video_id("https://m.youtube.com/watch?v=JjoDryfoCGs") == "JjoDryfoCGs"
+        assert (
+            extract_video_id("https://m.youtube.com/watch?v=JjoDryfoCGs")
+            == "JjoDryfoCGs"
+        )
 
     def test_bare_id(self):
         assert extract_video_id("JjoDryfoCGs") == "JjoDryfoCGs"
@@ -61,6 +71,7 @@ class TestExtractVideoId:
 # download_video
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadVideo:
     """Tests that don't hit the network — yt-dlp is mocked."""
 
@@ -71,7 +82,9 @@ class TestDownloadVideo:
 
         progress: list[str] = []
         result = download_video(
-            "JjoDryfoCGs", tmp_path, on_progress=progress.append,
+            "JjoDryfoCGs",
+            tmp_path,
+            on_progress=progress.append,
         )
 
         assert result == cached
@@ -105,7 +118,9 @@ class TestDownloadVideo:
         mock_ydl = MagicMock()
         mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
         mock_ydl_cls.return_value.__exit__ = MagicMock(return_value=False)
-        mock_ydl.download.side_effect = lambda _: (tmp_path / "abc12345678.mp4").write_bytes(b"v")
+        mock_ydl.download.side_effect = lambda _: (
+            tmp_path / "abc12345678.mp4"
+        ).write_bytes(b"v")
 
         download_video("abc12345678", tmp_path, resolution=720)
 
@@ -138,7 +153,9 @@ class TestDownloadVideo:
         mock_ydl = MagicMock()
         mock_ydl_cls.return_value.__enter__ = MagicMock(return_value=mock_ydl)
         mock_ydl_cls.return_value.__exit__ = MagicMock(return_value=False)
-        mock_ydl.download.side_effect = lambda _: (tmp_path / "abc12345678.mp4").write_bytes(b"v")
+        mock_ydl.download.side_effect = lambda _: (
+            tmp_path / "abc12345678.mp4"
+        ).write_bytes(b"v")
 
         download_video("abc12345678", tmp_path, start_time=60.0, end_time=120.0)
 

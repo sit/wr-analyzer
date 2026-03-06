@@ -7,7 +7,7 @@ Usage:
 Extracts one frame per entry in FRAME_DEFS and writes it to
 tests/fixtures/frames/{name}.png.  Requires ffmpeg.
 
-The default video is videos/JjoDryfoCGs.mp4 (Git LFS).
+The default video is tests/fixtures/JjoDryfoCGs.mp4 (Git LFS).
 """
 
 from __future__ import annotations
@@ -22,25 +22,25 @@ import cv2
 # If you add, remove, or rename a fixture, update this list and re-run
 # the script.  Tests import FRAME_DEFS from here via support.py.
 FRAME_DEFS: list[tuple[str, float]] = [
-    ("champ_select",                 300),
-    ("in_game_01",                    60),
-    ("in_game_02",                   600),
-    ("in_game_03",                   630),
-    ("in_game_04",                   660),
-    ("in_game_05",                   690),
-    ("in_game_06",                   700),
-    ("in_game_07",                   900),
-    ("in_game_08",                  1200),
-    ("in_game_09",                  1500),
-    ("in_game_10",                  1800),
-    ("in_game_11",                  2000),
-    ("postgame_victory_banner",     2190),
+    ("champ_select", 300),
+    ("in_game_01", 60),
+    ("in_game_02", 600),
+    ("in_game_03", 630),
+    ("in_game_04", 660),
+    ("in_game_05", 690),
+    ("in_game_06", 700),
+    ("in_game_07", 900),
+    ("in_game_08", 1200),
+    ("in_game_09", 1500),
+    ("in_game_10", 1800),
+    ("in_game_11", 2000),
+    ("postgame_victory_banner", 2190),
     ("postgame_victory_scoreboard", 2205),
 ]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures" / "frames"
-DEFAULT_VIDEO = REPO_ROOT / "videos" / "JjoDryfoCGs.mp4"
+DEFAULT_VIDEO = REPO_ROOT / "tests" / "fixtures" / "JjoDryfoCGs.mp4"
 
 
 def main() -> None:

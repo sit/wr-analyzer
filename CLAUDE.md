@@ -11,7 +11,7 @@ uv sync
 ## Commands
 
 ```sh
-uv run wr-analyzer videos/JjoDryfoCGs.mp4    # analyse local video
+uv run wr-analyzer tests/fixtures/JjoDryfoCGs.mp4  # analyse local video
 uv run wr-analyzer https://youtu.be/JjoDryfoCGs  # analyse YouTube video
 uv run pytest                                  # 122 tests
 uv run python tests/extract_fixtures.py        # regenerate test frame PNGs from video

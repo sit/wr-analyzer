@@ -34,7 +34,7 @@ wr-analyzer/
 │   ├── test_champions.py
 │   ├── test_result.py
 │   └── test_analyze.py
-├── videos/                     # LFS-tracked sample videos
+├── _cache/                     # Downloaded videos (gitignored)
 ├── docs/                       # vision, glossary, schema
 ├── CLAUDE.md
 └── README.md

@@ -7,7 +7,6 @@ timer / kill-score / KDA data for each detected game.
 from __future__ import annotations
 
 import time
-from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -17,7 +16,13 @@ import numpy as np
 
 from wr_analyzer.game_state import detect_game_phase
 from wr_analyzer.ocr import _get_easyocr_reader
-from wr_analyzer.kda import MAX_TEAM_KILLS, PlayerKDA, TeamKills, detect_player_kda, detect_team_kills
+from wr_analyzer.kda import (
+    MAX_TEAM_KILLS,
+    PlayerKDA,
+    TeamKills,
+    detect_player_kda,
+    detect_team_kills,
+)
 from wr_analyzer.result import detect_result
 from wr_analyzer.timer import detect_game_time
 from wr_analyzer.video import extract_frame, probe
@@ -142,28 +147,32 @@ def _sanitize_kills(frames: list[FrameData]) -> list[FrameData]:
         b, r = f.team_kills.blue, f.team_kills.red
         if b > MAX_TEAM_KILLS or r > MAX_TEAM_KILLS:
             # Implausible value — clear kill data
-            out.append(FrameData(
-                timestamp_sec=f.timestamp_sec,
-                phase=f.phase,
-                game_time=f.game_time,
-                team_kills=None,
-                player_kda=f.player_kda,
-                result=f.result,
-            ))
+            out.append(
+                FrameData(
+                    timestamp_sec=f.timestamp_sec,
+                    phase=f.phase,
+                    game_time=f.game_time,
+                    team_kills=None,
+                    player_kda=f.player_kda,
+                    result=f.result,
+                )
+            )
             continue
         if b >= last_blue and r >= last_red:
             last_blue, last_red = b, r
             out.append(f)
         else:
             # Drop the kill reading but keep the frame
-            out.append(FrameData(
-                timestamp_sec=f.timestamp_sec,
-                phase=f.phase,
-                game_time=f.game_time,
-                team_kills=None,
-                player_kda=f.player_kda,
-                result=f.result,
-            ))
+            out.append(
+                FrameData(
+                    timestamp_sec=f.timestamp_sec,
+                    phase=f.phase,
+                    game_time=f.game_time,
+                    team_kills=None,
+                    player_kda=f.player_kda,
+                    result=f.result,
+                )
+            )
     return out
 
 
@@ -187,7 +196,9 @@ def _segment_games(
         return []
 
     segments: list[GameSegment] = []
-    current = GameSegment(start_sec=in_game[0].timestamp_sec, end_sec=in_game[0].timestamp_sec)
+    current = GameSegment(
+        start_sec=in_game[0].timestamp_sec, end_sec=in_game[0].timestamp_sec
+    )
     current.frames.append(in_game[0])
 
     for f in in_game[1:]:
@@ -205,7 +216,10 @@ def _segment_games(
     post_game = [f for f in frames if f.phase == "post_game"]
     for seg in kept:
         for f in post_game:
-            if f.timestamp_sec > seg.end_sec and f.timestamp_sec <= seg.end_sec + min_gap_sec:
+            if (
+                f.timestamp_sec > seg.end_sec
+                and f.timestamp_sec <= seg.end_sec + min_gap_sec
+            ):
                 seg.post_game_frames.append(f)
 
     return kept
